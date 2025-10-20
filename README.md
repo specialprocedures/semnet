@@ -1,4 +1,4 @@
-# Semnet: Semantic Network Deduplication
+# Semnet: Semantic Networks for Text Analysis and Deduplication
 
 A Python package for building semantic networks using embeddings and graph clustering to perform intelligent deduplication of text data.
 
@@ -51,6 +51,7 @@ for doc in representatives:
 ## Features
 
 - **Scikit-learn style API** - Familiar fit/transform interface for ML practitioners
+- **Custom embeddings support** - Use your own pre-computed embeddings or any embedding model
 - **Multiple embedding models** - Support for any SentenceTransformer model
 - **Configurable similarity thresholds** - Control how strict the deduplication is
 - **Weighted documents** - Give more importance to certain documents when choosing representatives
@@ -119,6 +120,24 @@ stats = network.get_deduplication_stats()
 groups = network.get_duplicate_groups()
 ```
 
+### 4. Using Custom Embeddings
+
+```python
+import numpy as np
+
+# Provide your own pre-computed embeddings
+custom_embeddings = np.random.rand(len(docs), 384)  # Shape: (n_docs, embedding_dim)
+
+network = SemanticNetwork(thresh=0.3)
+
+# Fit with custom embeddings (skips sentence transformer step)
+representatives = network.fit_transform(docs, embeddings=custom_embeddings)
+
+# Or with separate fit/transform
+network.fit(docs, weights=weights, embeddings=custom_embeddings)
+representatives = network.transform()
+```
+
 ## Configuration Options
 
 ### SemanticNetwork Parameters
@@ -132,9 +151,12 @@ groups = network.get_duplicate_groups()
 
 ### Method Parameters
 
-- **fit(X, y=None, weights=None)**: X is list of documents, weights are optional importance scores
+- **fit(X, y=None, weights=None, embeddings=None)**: 
+  - X is list of documents
+  - weights are optional importance scores
+  - embeddings are optional pre-computed embeddings array with shape (len(X), embedding_dim)
 - **transform(X=None, return_representatives=True)**: return_representatives controls output format
-- **fit_transform(X, y=None, weights=None, return_representatives=True)**: Combined fit and transform
+- **fit_transform(X, y=None, weights=None, embeddings=None, return_representatives=True)**: Combined fit and transform
 
 ## Performance Tips
 
@@ -175,13 +197,28 @@ Returns `List[List[str]]` - List of groups, where each group contains similar do
 - pandas
 - scikit-learn
 
+## Project origin and statement on the use of AI
+I love network analysis, and have explored embedding-derived [semantic networks](https://en.wikipedia.org/wiki/Semantic_network) in the past as an alternative approach to representing, clustering and querying news data. 
+
+Whilst using semantic networks for a complex deduplication task on some forthcoming research, I decided to package some of my code for others to use.
+
+I kicked off the project by hand-refactoring my initial code into the class-based structure that forms the core functionality of the current module.
+
+I then used Github Copilot in VSCode to:
+- Bootstrap scaffolding, tests, documentation, examples and typing
+- Refactor the core methods in the style of the scikit-learn API
+- Add additional functionality for convenient analysis of deduplication outcomes and to allow the use of custom embeddings.
+
+## Roadmap
+Semnet is a relatively simple project and I don't have plans to add further features. 
+
+This noted, as things currently stand all the examples and tests are AI-generated, and don't showcase use-cases particularly well. Forthcoming additions to this repository will include:
+- Better examples and tests, including a demonstration of network analysis on a large corpus and blocking for improved deduplication performance
+- Better benchmarking
+
 ## License
 
 MIT License
-
-## Contributing
-
-Contributions welcome! Please see CONTRIBUTING.md for guidelines.
 
 ## Citation
 
@@ -189,7 +226,7 @@ If you use Semnet in academic work, please cite:
 
 ```bibtex
 @software{semnet,
-  title={Semnet: Semantic Network Deduplication},
+  title={Semnet: Semantic Networks for Text Analysis and Deduplication},
   author={Ian Goodrich},
   year={2025},
   url={https://github.com/specialprocedures/semnet}
