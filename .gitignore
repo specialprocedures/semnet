@@ -4,3 +4,4 @@ src/semnet/__pycache__
 .pytest_cache
 .venv
 .vscode
+tests/__pycache__
