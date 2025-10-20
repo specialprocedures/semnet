@@ -79,7 +79,11 @@ class SemanticNetwork:
         self._weights: Optional[List[Union[float, int]]] = None
 
     def fit(
-        self, X: List[str], y=None, weights: Optional[List[Union[float, int]]] = None
+        self,
+        X: List[str],
+        y=None,
+        weights: Optional[List[Union[float, int]]] = None,
+        embeddings: Optional[np.ndarray] = None,
     ) -> "SemanticNetwork":
         """
         Learn the semantic relationships between documents.
@@ -93,27 +97,44 @@ class SemanticNetwork:
             weights: Optional list of weights for document importance.
                     Higher weights = more likely to be chosen as representative.
                     Must be same length as X if provided.
+            embeddings: Optional pre-computed embeddings array with shape (len(X), embedding_dim).
+                       If provided, document embedding generation will be skipped.
 
         Returns:
             self: Returns the fitted estimator
 
         Raises:
             ValueError: If weights provided but length doesn't match X
+            ValueError: If embeddings provided but shape doesn't match X
         """
         if weights is not None and len(weights) != len(X):
             raise ValueError(
                 f"Weights length ({len(weights)}) must match X length ({len(X)})"
             )
 
+        if embeddings is not None and embeddings.shape[0] != len(X):
+            raise ValueError(
+                f"Embeddings shape[0] ({embeddings.shape[0]}) must match X length ({len(X)})"
+            )
+
         # Store training data
         self._docs = X
         self._weights = weights
+
+        # Store custom embeddings if provided
+        if embeddings is not None:
+            self.embeddings_ = embeddings
+            if self.verbose:
+                logger.info(
+                    f"Using provided embeddings with shape: {self.embeddings_.shape}"
+                )
 
         if self.verbose:
             logger.info(f"Fitting SemanticNetwork on {len(X)} documents")
 
         # Build the semantic network
-        self._embed_documents()
+        if embeddings is None:
+            self._embed_documents()
         self._build_vector_index()
         self._get_pairwise_similarities()
         self._build_graph()
@@ -179,6 +200,7 @@ class SemanticNetwork:
         X: List[str],
         y=None,
         weights: Optional[List[Union[float, int]]] = None,
+        embeddings: Optional[np.ndarray] = None,
         return_representatives: bool = True,
     ) -> Union[List[str], Dict[int, int]]:
         """
@@ -188,13 +210,15 @@ class SemanticNetwork:
             X: List of text documents to process
             y: Ignored, present for API compatibility
             weights: Optional list of weights for document importance
+            embeddings: Optional pre-computed embeddings array with shape (len(X), embedding_dim).
+                       If provided, document embedding generation will be skipped.
             return_representatives: If True, return list of representative documents.
                                   If False, return mapping dict.
 
         Returns:
             Either a list of representative documents or a mapping dictionary
         """
-        return self.fit(X, y, weights).transform(
+        return self.fit(X, y, weights, embeddings).transform(
             return_representatives=return_representatives
         )
 

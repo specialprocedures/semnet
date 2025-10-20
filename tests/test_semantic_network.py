@@ -124,6 +124,48 @@ class TestSemanticNetwork:
             groups = network.get_duplicate_groups()
             assert isinstance(groups, list)
 
+    def test_fit_with_custom_embeddings(self, sample_docs):
+        """Test fitting with custom embeddings."""
+        # Create custom embeddings
+        custom_embeddings = np.random.rand(len(sample_docs), 128)
+
+        network = SemanticNetwork(verbose=False)
+
+        # Should not call SentenceTransformer when custom embeddings provided
+        result = network.fit(sample_docs, embeddings=custom_embeddings)
+
+        assert result is network
+        assert network.is_fitted_ is True
+        assert network.embeddings_ is not None
+        np.testing.assert_array_equal(network.embeddings_, custom_embeddings)
+        assert network.embeddings_.shape == (len(sample_docs), 128)
+
+    def test_fit_transform_with_custom_embeddings(self, sample_docs):
+        """Test fit_transform with custom embeddings."""
+        # Create custom embeddings
+        custom_embeddings = np.random.rand(len(sample_docs), 256)
+
+        network = SemanticNetwork(verbose=False)
+
+        # Test fit_transform with custom embeddings
+        representatives = network.fit_transform(
+            sample_docs, embeddings=custom_embeddings
+        )
+
+        assert isinstance(representatives, list)
+        assert len(representatives) <= len(sample_docs)
+        assert network.is_fitted_ is True
+        np.testing.assert_array_equal(network.embeddings_, custom_embeddings)
+
+    def test_fit_embeddings_shape_mismatch(self, sample_docs):
+        """Test fit fails with mismatched embeddings shape."""
+        # Create embeddings with wrong number of documents
+        wrong_embeddings = np.random.rand(len(sample_docs) - 1, 128)
+
+        network = SemanticNetwork()
+        with pytest.raises(ValueError, match="Embeddings shape.*must match X length"):
+            network.fit(sample_docs, embeddings=wrong_embeddings)
+
 
 @pytest.mark.slow
 def test_real_model_integration():

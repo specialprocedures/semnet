@@ -43,74 +43,77 @@ def main():
         1.0,  # "I love eating pizza"
     ]
 
-    print("🔍 Starting semantic deduplication...")
-    print(f"📄 Input: {len(documents)} documents")
+    print("Starting semantic deduplication...")
+    print(f"Input: {len(documents)} documents")
     print()
 
     # Create semantic network with verbose output
     network = SemanticNetwork(
-        docs=documents,
-        weights=weights,
         embedding_model="all-MiniLM-L6-v2",  # Fast, good quality model
         verbose=True,  # Show progress bars and detailed info
         n_trees=10,  # Good balance of speed/accuracy
+        thresh=0.25,  # Similarity threshold (0.0-1.0)
+        top_k=5,  # Max neighbors to check per document
     )
 
-    # Run the full deduplication pipeline
-    result = network.deduplicate_documents(
-        thresh=0.75,  # Similarity threshold (0.0-1.0)
-        top_k=50,  # Max neighbors to check per document
+    # Fit the model and get representative documents
+    representatives = network.fit_transform(
+        documents, weights=weights, return_representatives=True
     )
 
     print()
     print("=" * 60)
-    print("📊 DEDUPLICATION RESULTS")
+    print("DEDUPLICATION RESULTS")
     print("=" * 60)
 
     # Print statistics
-    stats = result["stats"]
-    print(f"📄 Original documents: {stats['original_count']}")
-    print(f"✨ After deduplication: {stats['deduplicated_count']}")
-    print(f"🗑️  Duplicates removed: {stats['duplicates_found']}")
-    print(f"📉 Reduction ratio: {stats['reduction_ratio']:.1%}")
-    print(f"🔗 Similarity pairs found: {stats['similarity_pairs']}")
-    print(f"🌐 Connected components: {stats['connected_components']}")
+    stats = network.get_deduplication_stats()
+    print(f"Original documents: {stats['original_count']}")
+    print(f"After deduplication: {stats['deduplicated_count']}")
+    print(f"Duplicates removed: {stats['duplicates_found']}")
+    print(f"Reduction ratio: {stats['reduction_ratio']:.1%}")
+    print(f"Similarity pairs found: {stats['similarity_pairs']}")
+    print(f"Connected components: {stats['connected_components']}")
     print()
 
     # Show representative documents
-    print("📋 REPRESENTATIVE DOCUMENTS:")
+    print("REPRESENTATIVE DOCUMENTS:")
     print("-" * 40)
-    for i, doc in enumerate(result["representatives"], 1):
+    for i, doc in enumerate(representatives, 1):
         print(f"{i:2d}. {doc}")
     print()
 
     # Show duplicate groups
-    print("👥 DUPLICATE GROUPS:")
+    print("DUPLICATE GROUPS:")
     print("-" * 40)
 
     groups = network.get_duplicate_groups()
+    mapping_dict = network.transform(return_representatives=False)
     for i, group in enumerate(groups, 1):
         print(f"Group {i} ({len(group)} documents):")
         for doc in group:
             # Mark the representative (not in mapping)
             doc_idx = documents.index(doc)
-            is_representative = doc_idx not in result["mapping"]
-            marker = "👑" if is_representative else "  "
+            is_representative = (
+                doc_idx not in mapping_dict if isinstance(mapping_dict, dict) else True
+            )
+            marker = "*" if is_representative else " "
             print(f"  {marker} {doc}")
         print()
 
     # Show mapping details
-    if result["mapping"]:
-        print("🔄 DEDUPLICATION MAPPING:")
+    mapping = network.transform(return_representatives=False)
+    if mapping and isinstance(mapping, dict):
+        print("DEDUPLICATION MAPPING:")
         print("-" * 40)
-        for duplicate_idx, representative_idx in result["mapping"].items():
+        for duplicate_idx, representative_idx in mapping.items():
             duplicate_doc = documents[duplicate_idx]
             representative_doc = documents[representative_idx]
             print(f"'{duplicate_doc}'")
-            print(f"  ↳ maps to: '{representative_doc}'")
+            print(f"  -> maps to: '{representative_doc}'")
             print()
 
-    print("✅ Deduplication complete!")
+    print("Deduplication complete!")
 
 
 if __name__ == "__main__":
