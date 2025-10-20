@@ -1,0 +1,303 @@
+id,name,organisation
+1,Tony Blair,Labour Party
+2,Sir Tony Blair,Labour Party
+3,Anthony Charles Lynton Blair,Labour Party
+4,Donald Trump,Republican Party
+5,Donald J Trump,Republican Party
+6,Donald John Trump,Republican Party
+7,Donald Trump Jr,Republican Party
+8,Donald Trump Junior,Republican Party
+9,Joe Biden,Democratic Party
+10,Joseph Biden,Democratic Party
+11,Joseph R Biden,Democratic Party
+12,Barack Obama,Democratic Party
+13,Barack H Obama,Democratic Party
+14,Barack Hussein Obama,Democratic Party
+15,Hillary Clinton,Democratic Party
+16,Hillary Rodham Clinton,Democratic Party
+17,Hillary R Clinton,Democratic Party
+18,Vladimir Putin,United Russia
+19,Vladimir Vladimirovich Putin,United Russia
+20,V Putin,United Russia
+21,Emmanuel Macron,En Marche
+22,Emmanuel Jean-Michel Frédéric Macron,En Marche
+23,E Macron,En Marche
+24,Angela Merkel,CDU
+25,Angela Dorothea Merkel,CDU
+26,A Merkel,CDU
+27,Xi Jinping,Communist Party of China
+28,Xi Jinping,CPC
+29,President Xi,Communist Party of China
+30,Boris Johnson,Conservative Party
+31,Alexander Boris de Pfeffel Johnson,Conservative Party
+32,Boris de Pfeffel Johnson,Conservative Party
+33,Rishi Sunak,Conservative Party
+34,Rishi Sunak,Tory Party
+35,R Sunak,Conservative Party
+36,Keir Starmer,Labour Party
+37,Sir Keir Starmer,Labour Party
+38,Keir Rodney Starmer,Labour Party
+39,Elon Musk,Tesla
+40,Elon Reeve Musk,Tesla
+41,Elon R Musk,SpaceX
+42,Jeff Bezos,Amazon
+43,Jeffrey Preston Bezos,Amazon
+44,Jeff P Bezos,Blue Origin
+45,Bill Gates,Microsoft
+46,William Henry Gates III,Microsoft
+47,Bill H Gates,Gates Foundation
+48,Warren Buffett,Berkshire Hathaway
+49,Warren Edward Buffett,Berkshire Hathaway
+50,W Buffett,Berkshire Hathaway
+51,Mark Zuckerberg,Meta
+52,Mark Elliot Zuckerberg,Meta
+53,Mark E Zuckerberg,Facebook
+54,Tim Cook,Apple
+55,Timothy Donald Cook,Apple
+56,Tim D Cook,Apple Inc
+57,Sundar Pichai,Google
+58,Pichai Sundararajan,Google
+59,Sundar Pichai,Alphabet
+60,Satya Nadella,Microsoft
+61,Satya Narayana Nadella,Microsoft
+62,S Nadella,Microsoft Corporation
+63,Jamie Dimon,JPMorgan Chase
+64,James Dimon,JPMorgan
+65,J Dimon,JP Morgan Chase
+66,Lloyd Blankfein,Goldman Sachs
+67,Lloyd Craig Blankfein,Goldman Sachs
+68,L Blankfein,Goldman Sachs Group
+69,Mary Barra,General Motors
+70,Mary Teresa Barra,GM
+71,M Barra,General Motors Company
+72,Ginni Rometty,IBM
+73,Virginia Marie Rometty,IBM
+74,Virginia Rometty,International Business Machines
+75,Jensen Huang,NVIDIA
+76,Jen-Hsun Huang,NVIDIA
+77,J Huang,NVIDIA Corporation
+78,Lisa Su,AMD
+79,Lisa T Su,Advanced Micro Devices
+80,L Su,AMD Inc
+81,Pat Gelsinger,Intel
+82,Patrick Paul Gelsinger,Intel
+83,P Gelsinger,Intel Corporation
+84,Reed Hastings,Netflix
+85,Wilmot Reed Hastings Jr,Netflix
+86,Reed Hastings Jr,Netflix Inc
+87,Brian Chesky,Airbnb
+88,Brian Joseph Chesky,Airbnb
+89,B Chesky,Airbnb Inc
+90,Daniel Ek,Spotify
+91,Daniel Ek,Spotify Technology
+92,D Ek,Spotify AB
+93,Evan Spiegel,Snap Inc
+94,Evan Thomas Spiegel,Snapchat
+95,E Spiegel,Snap
+96,Jack Dorsey,Twitter
+97,Jack Patrick Dorsey,Twitter
+98,J Dorsey,Square
+99,Susan Wojcicki,YouTube
+100,Susan Diane Wojcicki,Google
+101,S Wojcicki,Alphabet Inc
+102,Sheryl Sandberg,Meta
+103,Sheryl Kara Sandberg,Facebook
+104,S Sandberg,Meta Platforms
+105,Ruth Porat,Alphabet
+106,Ruth Porat,Google
+107,R Porat,Alphabet Inc
+108,Oprah Winfrey,OWN Network
+109,Oprah Gail Winfrey,Harpo Productions
+110,O Winfrey,OWN
+111,Michael Bloomberg,Bloomberg LP
+112,Michael Rubens Bloomberg,Bloomberg
+113,Mike Bloomberg,Bloomberg Terminal
+114,Richard Branson,Virgin Group
+115,Sir Richard Branson,Virgin
+116,Richard Charles Nicholas Branson,Virgin Atlantic
+117,Carlos Slim,Grupo Carso
+118,Carlos Slim Helú,Telmex
+119,C Slim,América Móvil
+120,Amancio Ortega,Inditex
+121,Amancio Ortega Gaona,Zara
+122,A Ortega,Inditex Group
+123,Bernard Arnault,LVMH
+124,Bernard Jean Étienne Arnault,Louis Vuitton
+125,B Arnault,LVMH Group
+126,Françoise Bettencourt Meyers,L'Oréal
+127,Francoise Bettencourt Meyers,L'Oreal
+128,F Bettencourt Meyers,Loreal
+129,Larry Page,Alphabet
+130,Lawrence Edward Page,Google
+131,L Page,Alphabet Inc
+132,Sergey Brin,Alphabet
+133,Sergey Mikhaylovich Brin,Google
+134,S Brin,Alphabet Inc
+135,Larry Ellison,Oracle
+136,Lawrence Joseph Ellison,Oracle Corporation
+137,L Ellison,Oracle Corp
+138,Steve Ballmer,Microsoft
+139,Steven Anthony Ballmer,Los Angeles Clippers
+140,S Ballmer,Microsoft Corporation
+141,Mukesh Ambani,Reliance Industries
+142,Mukesh Dhirubhai Ambani,Reliance
+143,M Ambani,Reliance Group
+144,Gautam Adani,Adani Group
+145,Gautam Shantilal Adani,Adani Enterprises
+146,G Adani,Adani Ports
+147,Zhong Shanshan,Nongfu Spring
+148,Zhong Shanshan,Beijing Wantai
+149,Z Shanshan,Wantai Biological
+150,Ma Huateng,Tencent
+151,Pony Ma,Tencent Holdings
+152,Ma Huateng,Tencent Inc
+153,Jack Ma,Alibaba
+154,Ma Yun,Alibaba Group
+155,J Ma,Ant Group
+156,Colin Powell,US State Department
+157,Colin Luther Powell,Department of State
+158,Secretary Powell,State Department
+159,Condoleezza Rice,Stanford University
+160,Condoleezza Rice,US State Department
+161,C Rice,Hoover Institution
+162,John McCain,Republican Party
+163,John Sidney McCain III,US Senate
+164,Senator McCain,Arizona
+165,Mitt Romney,Republican Party
+166,Willard Mitt Romney,Bain Capital
+167,Governor Romney,Utah
+168,John Kerry,Democratic Party
+169,John Forbes Kerry,US State Department
+170,Secretary Kerry,State Department
+171,Al Gore,Democratic Party
+172,Albert Arnold Gore Jr,Climate Reality Project
+173,Vice President Gore,An Inconvenient Truth
+174,Nancy Pelosi,Democratic Party
+175,Nancy Patricia Pelosi,House of Representatives
+176,Speaker Pelosi,US House
+177,Chuck Schumer,Democratic Party
+178,Charles Ellis Schumer,US Senate
+179,Senator Schumer,New York
+180,Mitch McConnell,Republican Party
+181,Addison Mitchell McConnell Jr,US Senate
+182,Senator McConnell,Kentucky
+183,Ted Cruz,Republican Party
+184,Rafael Edward Cruz,US Senate
+185,Senator Cruz,Texas
+186,Marco Rubio,Republican Party
+187,Marco Antonio Rubio,US Senate
+188,Senator Rubio,Florida
+189,Elizabeth Warren,Democratic Party
+190,Elizabeth Ann Warren,US Senate
+191,Senator Warren,Massachusetts
+192,Bernie Sanders,Independent
+193,Bernard Sanders,US Senate
+194,Senator Sanders,Vermont
+195,Alexandria Ocasio-Cortez,Democratic Party
+196,Alexandria Ocasio Cortez,House of Representatives
+197,AOC,US House
+198,Kamala Harris,Democratic Party
+199,Kamala Devi Harris,Vice President
+200,VP Harris,White House
+201,Mike Pence,Republican Party
+202,Michael Richard Pence,Vice President
+203,VP Pence,Indiana
+204,Ron DeSantis,Republican Party
+205,Ronald Dion DeSantis,Florida
+206,Governor DeSantis,State of Florida
+207,Gavin Newsom,Democratic Party
+208,Gavin Christopher Newsom,California
+209,Governor Newsom,State of California
+210,Greg Abbott,Republican Party
+211,Gregory Wayne Abbott,Texas
+212,Governor Abbott,State of Texas
+213,Gretchen Whitmer,Democratic Party
+214,Gretchen Esther Whitmer,Michigan
+215,Governor Whitmer,State of Michigan
+216,Kristi Noem,Republican Party
+217,Kristi Lynn Noem,South Dakota
+218,Governor Noem,State of South Dakota
+219,Andy Beshear,Democratic Party
+220,Andrew Graham Beshear,Kentucky
+221,Governor Beshear,Commonwealth of Kentucky
+222,Josh Shapiro,Democratic Party
+223,Joshua David Shapiro,Pennsylvania
+224,Governor Shapiro,Commonwealth of Pennsylvania
+225,Kathy Hochul,Democratic Party
+226,Kathleen Courtney Hochul,New York
+227,Governor Hochul,State of New York
+228,Janet Yellen,US Treasury
+229,Janet Louise Yellen,Federal Reserve
+230,Secretary Yellen,Treasury Department
+231,Jerome Powell,Federal Reserve
+232,Jerome Hayden Powell,Fed
+233,Chair Powell,Federal Reserve Board
+234,Christine Lagarde,European Central Bank
+235,Christine Madeleine Odette Lagarde,ECB
+236,President Lagarde,European Central Bank
+237,Mario Draghi,European Central Bank
+238,Mario Draghi,Bank of Italy
+239,President Draghi,ECB
+240,Mark Carney,Bank of England
+241,Mark Joseph Carney,Bank of Canada
+242,Governor Carney,BoE
+243,Andrew Bailey,Bank of England
+244,Andrew John Bailey,Financial Conduct Authority
+245,Governor Bailey,BoE
+246,Lael Brainard,Federal Reserve
+247,Lael Brainard,White House
+248,L Brainard,Fed Board
+249,Mary Daly,Federal Reserve Bank of San Francisco
+250,Mary C Daly,SF Fed
+251,M Daly,San Francisco Fed
+252,Neel Kashkari,Federal Reserve Bank of Minneapolis
+253,Neel Kashkari,Minneapolis Fed
+254,N Kashkari,TARP
+255,Raphael Bostic,Federal Reserve Bank of Atlanta
+256,Raphael W Bostic,Atlanta Fed
+257,R Bostic,Federal Reserve Atlanta
+258,Charles Evans,Federal Reserve Bank of Chicago
+259,Charles L Evans,Chicago Fed
+260,C Evans,Federal Reserve Chicago
+261,Esther George,Federal Reserve Bank of Kansas City
+262,Esther L George,Kansas City Fed
+263,E George,Federal Reserve Kansas City
+264,Robert Kaplan,Federal Reserve Bank of Dallas
+265,Robert Steven Kaplan,Dallas Fed
+266,R Kaplan,Federal Reserve Dallas
+267,Eric Rosengren,Federal Reserve Bank of Boston
+268,Eric S Rosengren,Boston Fed
+269,E Rosengren,Federal Reserve Boston
+270,James Bullard,Federal Reserve Bank of St Louis
+271,James Brian Bullard,St Louis Fed
+272,J Bullard,Federal Reserve St Louis
+273,Loretta Mester,Federal Reserve Bank of Cleveland
+274,Loretta J Mester,Cleveland Fed
+275,L Mester,Federal Reserve Cleveland
+276,John Williams,Federal Reserve Bank of New York
+277,John C Williams,NY Fed
+278,J Williams,Federal Reserve New York
+279,Michelle Bowman,Federal Reserve Board
+280,Michelle W Bowman,Fed Board
+281,M Bowman,Federal Reserve
+282,Randal Quarles,Federal Reserve Board
+283,Randal Keith Quarles,Fed Vice Chair
+284,R Quarles,Federal Reserve
+285,Richard Clarida,Federal Reserve Board
+286,Richard H Clarida,Fed Vice Chair
+287,R Clarida,Federal Reserve
+288,Lorie Logan,Federal Reserve Bank of Dallas
+289,Lorie K Logan,Dallas Fed
+290,L Logan,Federal Reserve Dallas
+291,Susan Collins,Federal Reserve Bank of Boston
+292,Susan M Collins,Boston Fed
+293,S Collins,Federal Reserve Boston
+294,Austan Goolsbee,Federal Reserve Bank of Chicago
+295,Austan Dean Goolsbee,Chicago Fed
+296,A Goolsbee,Federal Reserve Chicago
+297,Thomas Barkin,Federal Reserve Bank of Richmond
+298,Thomas I Barkin,Richmond Fed
+299,T Barkin,Federal Reserve Richmond
+300,Alberto Musalem,Federal Reserve Bank of St Louis
+301,Alberto G Musalem,St Louis Fed
+302,A Musalem,Federal Reserve St Louis

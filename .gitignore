@@ -1,0 +1,6 @@
+src/semnet.egg-info
+src/semnet/__pycache__
+.github
+.pytest_cache
+.venv
+.vscode
