@@ -38,93 +38,91 @@ class TestSemanticNetwork:
             mock_model.encode.return_value = np.random.rand(len(sample_docs), 384)
             mock_st.return_value = mock_model
 
-            network = SemanticNetwork(
-                docs=sample_docs, embedding_model="test-model", verbose=False
-            )
+            network = SemanticNetwork(embedding_model="test-model", verbose=False)
+            # Fit the network with sample docs
+            network.fit(sample_docs)
             return network
 
     def test_init_basic(self, sample_docs):
         """Test basic initialization."""
-        with patch("semnet.semnet.SentenceTransformer"):
-            network = SemanticNetwork(docs=sample_docs)
+        network = SemanticNetwork()
 
-            assert network.docs == sample_docs
-            assert network.weights is None
-            assert network.n_trees == 10
-            assert network.metric == "angular"
-            assert network.verbose is False
+        assert network.embedding_model_name == "BAAI/bge-base-en-v1.5"
+        assert network.n_trees == 10
+        assert network.metric == "angular"
+        assert network.verbose is False
+        assert network.is_fitted_ is False
 
     def test_init_with_weights(self, sample_docs, sample_weights):
-        """Test initialization with weights."""
-        with patch("semnet.semnet.SentenceTransformer"):
-            network = SemanticNetwork(docs=sample_docs, weights=sample_weights)
-            assert network.weights == sample_weights
+        """Test initialization with custom parameters."""
+        network = SemanticNetwork(
+            embedding_model="custom-model", metric="euclidean", thresh=0.5, verbose=True
+        )
+        assert network.embedding_model_name == "custom-model"
+        assert network.metric == "euclidean"
+        assert network.thresh == 0.5
+        assert network.verbose is True
 
-    def test_init_weights_length_mismatch(self, sample_docs):
-        """Test initialization fails with mismatched weights length."""
-        with patch("semnet.semnet.SentenceTransformer"):
-            with pytest.raises(
-                ValueError, match="Weights length.*must match docs length"
-            ):
-                SemanticNetwork(docs=sample_docs, weights=[1.0, 2.0])
+    def test_fit_weights_length_mismatch(self, sample_docs):
+        """Test fit fails with mismatched weights length."""
+        network = SemanticNetwork()
+        with pytest.raises(ValueError, match="Weights length.*must match X length"):
+            network.fit(sample_docs, weights=[1.0, 2.0])
 
-    def test_embed_documents(self, semantic_network, sample_docs):
-        """Test document embedding generation."""
-        embeddings = semantic_network.embed_documents()
+    def test_fit_and_transform(self, sample_docs):
+        """Test fitting and transforming."""
+        with patch("semnet.semnet.SentenceTransformer") as mock_st:
+            mock_model = Mock()
+            mock_model.encode.return_value = np.random.rand(len(sample_docs), 384)
+            mock_st.return_value = mock_model
 
-        assert embeddings is not None
-        assert embeddings.shape[0] == len(sample_docs)
-        assert embeddings.shape[1] > 0
-        assert semantic_network.embeddings is not None
-        np.testing.assert_array_equal(embeddings, semantic_network.embeddings)
+            network = SemanticNetwork(verbose=False)
 
-    def test_build_vector_index(self, semantic_network):
-        """Test building vector index."""
-        semantic_network.embed_documents()
+            # Test fit
+            result = network.fit(sample_docs)
+            assert result is network  # Should return self
+            assert network.is_fitted_ is True
+            assert network.embeddings_ is not None
+            assert network.embeddings_.shape[0] == len(sample_docs)
 
-        with patch("semnet.semnet.AnnoyIndex") as mock_annoy:
-            mock_index = Mock()
-            mock_annoy.return_value = mock_index
+            # Test transform
+            representatives = network.transform()
+            assert isinstance(representatives, list)
+            assert len(representatives) <= len(sample_docs)
 
-            index = semantic_network.build_vector_index()
+    def test_fit_transform(self, sample_docs):
+        """Test fit_transform method."""
+        with patch("semnet.semnet.SentenceTransformer") as mock_st:
+            mock_model = Mock()
+            mock_model.encode.return_value = np.random.rand(len(sample_docs), 384)
+            mock_st.return_value = mock_model
 
-            assert index is not None
-            assert semantic_network.index is not None
-            mock_index.build.assert_called_once_with(semantic_network.n_trees)
+            network = SemanticNetwork(verbose=False)
 
-    def test_get_pairwise_similarities(self, semantic_network):
-        """Test pairwise similarity computation."""
-        semantic_network.embed_documents()
+            # Test fit_transform
+            representatives = network.fit_transform(sample_docs)
+            assert isinstance(representatives, list)
+            assert len(representatives) <= len(sample_docs)
+            assert network.is_fitted_ is True
 
-        with patch("semnet.semnet.AnnoyIndex") as mock_annoy:
-            mock_index = Mock()
-            mock_index.get_nns_by_item.return_value = ([0, 1], [0.0, 0.2])
-            mock_annoy.return_value = mock_index
-            semantic_network.build_vector_index()
+    def test_transform_not_fitted(self):
+        """Test transform fails when not fitted."""
+        network = SemanticNetwork()
+        with pytest.raises(ValueError, match="not fitted yet"):
+            network.transform()
 
-            result = semantic_network.get_pairwise_similarities(
-                thresh=0.7, inplace=False
-            )
+    def test_get_duplicate_groups(self, sample_docs):
+        """Test getting duplicate groups."""
+        with patch("semnet.semnet.SentenceTransformer") as mock_st:
+            mock_model = Mock()
+            mock_model.encode.return_value = np.random.rand(len(sample_docs), 384)
+            mock_st.return_value = mock_model
 
-            assert isinstance(result, pd.DataFrame)
-            assert semantic_network.neighbor_data is not None
+            network = SemanticNetwork(verbose=False)
+            network.fit(sample_docs)
 
-    def test_build_graph(self, semantic_network, sample_docs):
-        """Test graph building."""
-        semantic_network.embed_documents()
-
-        with patch("semnet.semnet.AnnoyIndex") as mock_annoy:
-            mock_index = Mock()
-            mock_index.get_nns_by_item.return_value = ([0, 1], [0.0, 0.2])
-            mock_annoy.return_value = mock_index
-            semantic_network.build_vector_index()
-
-        semantic_network.get_pairwise_similarities(thresh=0.7)
-        graph = semantic_network.build_graph()
-
-        assert isinstance(graph, nx.Graph)
-        assert semantic_network.graph is not None
-        assert graph.number_of_nodes() == len(sample_docs)
+            groups = network.get_duplicate_groups()
+            assert isinstance(groups, list)
 
 
 @pytest.mark.slow
@@ -138,13 +136,14 @@ def test_real_model_integration():
 
     # Use a small, fast model for testing
     network = SemanticNetwork(
-        docs=docs, embedding_model="all-MiniLM-L6-v2", verbose=False
+        embedding_model="all-MiniLM-L6-v2", verbose=False, thresh=0.8
     )
 
-    result = network.deduplicate_documents(thresh=0.8)
+    representatives = network.fit_transform(docs)
 
     # Basic sanity checks
-    assert len(result["representatives"]) <= len(docs)
-    assert result["stats"]["original_count"] == len(docs)
-    assert isinstance(result["graph"], nx.Graph)
-    assert isinstance(result["similarities"], pd.DataFrame)
+    assert len(representatives) <= len(docs)
+    assert network.is_fitted_ is True
+    stats = network.get_deduplication_stats()
+    assert stats["original_count"] == len(docs)
+    assert isinstance(stats, dict)

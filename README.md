@@ -27,28 +27,30 @@ docs = [
 # Optional: provide weights for document importance
 weights = [1.0, 0.5, 2.0, 3.0, 2.5]
 
-# Create semantic network
+# Create and configure semantic network
 network = SemanticNetwork(
-    docs=docs,
-    weights=weights,
     embedding_model="BAAI/bge-base-en-v1.5",
+    thresh=0.8,
     verbose=True
 )
 
-# Run deduplication
-result = network.deduplicate_documents(thresh=0.8)
+# Fit and transform documents
+representatives = network.fit_transform(docs, weights=weights)
 
-print(f"Original: {result['stats']['original_count']} documents")
-print(f"After deduplication: {result['stats']['deduplicated_count']} documents")
-print(f"Reduction: {result['stats']['reduction_ratio']:.1%}")
+# Get statistics
+stats = network.get_deduplication_stats()
+print(f"Original: {stats['original_count']} documents")
+print(f"After deduplication: {stats['deduplicated_count']} documents")
+print(f"Reduction: {stats['reduction_ratio']:.1%}")
 
 # Get representative documents
-for doc in result['representatives']:
+for doc in representatives:
     print(f"- {doc}")
 ```
 
 ## Features
 
+- **Scikit-learn style API** - Familiar fit/transform interface for ML practitioners
 - **Multiple embedding models** - Support for any SentenceTransformer model
 - **Configurable similarity thresholds** - Control how strict the deduplication is
 - **Weighted documents** - Give more importance to certain documents when choosing representatives
@@ -78,8 +80,8 @@ pip install -e ".[dev]"
 ```python
 from semnet import SemanticNetwork
 
-network = SemanticNetwork(docs=your_documents)
-result = network.deduplicate_documents(thresh=0.8)
+network = SemanticNetwork(thresh=0.8)
+representatives = network.fit_transform(your_documents)
 ```
 
 ### 2. Advanced Usage with Weights
@@ -90,47 +92,49 @@ docs = ["doc1", "doc2", "doc3"]
 weights = [1.0, 2.0, 0.5]  # doc2 is most important
 
 network = SemanticNetwork(
-    docs=docs, 
-    weights=weights,
     embedding_model="all-MiniLM-L6-v2",
+    thresh=0.85,
     verbose=True
 )
 
-result = network.deduplicate_documents(thresh=0.85)
+representatives = network.fit_transform(docs, weights=weights)
 ```
 
-### 3. Manual Step-by-Step Process
+### 3. Separate Fit and Transform
 
 ```python
-network = SemanticNetwork(docs=docs)
+network = SemanticNetwork()
 
-# Generate embeddings
-embeddings = network.embed_documents()
+# Fit the model on training documents
+network.fit(docs, weights=weights)
 
-# Build similarity index
-index = network.build_vector_index()
+# Transform to get representatives
+representatives = network.transform()
 
-# Find similar pairs
-similarities = network.get_pairwise_similarities(thresh=0.8, inplace=False)
+# Or get the mapping instead
+mapping = network.transform(return_representatives=False)
 
-# Build graph
-graph = network.build_graph()
-
-# Get deduplication mapping
-mapping = network.get_deduplication_mapping()
-
-# Get duplicate groups
+# Get additional information
+stats = network.get_deduplication_stats()
 groups = network.get_duplicate_groups()
 ```
 
 ## Configuration Options
 
-- **embedding_model**: Any SentenceTransformer model name or path
-- **metric**: Distance metric for Annoy index ('angular', 'euclidean', etc.)
-- **n_trees**: Number of trees for Annoy index (more = better accuracy, slower)
-- **thresh**: Similarity threshold (0.0 to 1.0)
-- **top_k**: Maximum neighbors to check per document
-- **verbose**: Show progress bars and logging
+### SemanticNetwork Parameters
+
+- **embedding_model**: Any SentenceTransformer model name or path (default: "BAAI/bge-base-en-v1.5")
+- **metric**: Distance metric for Annoy index ('angular', 'euclidean', etc.) (default: 'angular')
+- **n_trees**: Number of trees for Annoy index (more = better accuracy, slower) (default: 10)
+- **thresh**: Similarity threshold (0.0 to 1.0) (default: 0.7)
+- **top_k**: Maximum neighbors to check per document (default: 100)
+- **verbose**: Show progress bars and logging (default: False)
+
+### Method Parameters
+
+- **fit(X, y=None, weights=None)**: X is list of documents, weights are optional importance scores
+- **transform(X=None, return_representatives=True)**: return_representatives controls output format
+- **fit_transform(X, y=None, weights=None, return_representatives=True)**: Combined fit and transform
 
 ## Performance Tips
 
@@ -142,13 +146,24 @@ groups = network.get_duplicate_groups()
 
 ## Return Values
 
-The `deduplicate_documents()` method returns a dictionary with:
+### transform() and fit_transform() methods
 
-- **mapping**: `Dict[int, int]` - Maps document indices to their representatives
-- **representatives**: `List[str]` - List of unique documents after deduplication
-- **similarities**: `pd.DataFrame` - All pairwise similarities above threshold
-- **graph**: `nx.Graph` - The similarity graph
-- **stats**: `Dict` - Statistics about the deduplication process
+- If `return_representatives=True` (default): `List[str]` - List of unique documents after deduplication
+- If `return_representatives=False`: `Dict[int, int]` - Maps document indices to their representatives
+
+### get_deduplication_stats() method
+
+Returns a dictionary with:
+- **original_count**: Number of input documents
+- **deduplicated_count**: Number of unique documents after deduplication
+- **duplicates_found**: Number of documents that were deduplicated
+- **reduction_ratio**: Fraction of documents removed (0.0 to 1.0)
+- **similarity_pairs**: Number of pairwise similarities found above threshold
+- **connected_components**: Number of separate groups in the similarity graph
+
+### get_duplicate_groups() method
+
+Returns `List[List[str]]` - List of groups, where each group contains similar documents
 
 ## Requirements
 
