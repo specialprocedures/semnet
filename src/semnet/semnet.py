@@ -76,7 +76,7 @@ class SemanticNetwork:
         # Initialize model with progress bar if verbose
         if self.verbose:
             logger.info(f"Loading embedding model: {embedding_model}")
-        self.embedding_model = SentenceTransformer(embedding_model)
+        self.embedding_model = embedding_model
 
         # Initialize state
         self.embeddings: Optional[np.ndarray] = None
@@ -116,9 +116,12 @@ class SemanticNetwork:
             logger.info(f"Generating embeddings for {len(self.docs)} documents")
 
         # Use model's built-in progress bar if verbose, otherwise disable
-        self.embeddings = self.embedding_model.encode(
+        embedding_model = SentenceTransformer(self.embedding_model)
+        self.embeddings = embedding_model.encode(
             self.docs, show_progress_bar=self.verbose
         )
+        # Free up memory by deleting the model reference
+        del embedding_model
 
         if self.verbose:
             logger.info(f"Generated embeddings with shape: {self.embeddings.shape}")
