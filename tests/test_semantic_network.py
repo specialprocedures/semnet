@@ -166,6 +166,104 @@ class TestSemanticNetwork:
         with pytest.raises(ValueError, match="Embeddings shape.*must match X length"):
             network.fit(sample_docs, embeddings=wrong_embeddings)
 
+    def test_fit_with_blocks_1d(self, sample_docs):
+        """Test fitting with 1D blocks."""
+        # Create blocks - group similar documents together
+        blocks = ["A", "A", "B", "B", "C", "C"]  # Same length as sample_docs
+        custom_embeddings = np.random.rand(len(sample_docs), 128)
+
+        network = SemanticNetwork(verbose=False, thresh=0.5)
+
+        result = network.fit(sample_docs, embeddings=custom_embeddings, blocks=blocks)
+
+        assert result is network
+        assert network.is_fitted_ is True
+        assert network.blocks_ is not None
+        assert network.blocks_.shape == (len(sample_docs), 1)
+        np.testing.assert_array_equal(network.blocks_.flatten(), blocks)
+
+    def test_fit_with_blocks_2d(self, sample_docs):
+        """Test fitting with 2D blocks (multiple blocking variables)."""
+        # Create 2D blocks - company and department
+        blocks = [
+            ["CompanyA", "Dept1"],
+            ["CompanyA", "Dept1"],
+            ["CompanyA", "Dept2"],
+            ["CompanyB", "Dept1"],
+            ["CompanyB", "Dept2"],
+            ["CompanyC", "Dept1"],
+        ]
+        custom_embeddings = np.random.rand(len(sample_docs), 128)
+
+        network = SemanticNetwork(verbose=False, thresh=0.5)
+
+        result = network.fit(sample_docs, embeddings=custom_embeddings, blocks=blocks)
+
+        assert result is network
+        assert network.is_fitted_ is True
+        assert network.blocks_ is not None
+        assert network.blocks_.shape == (len(sample_docs), 2)
+
+    def test_fit_blocks_length_mismatch(self, sample_docs):
+        """Test fit fails with mismatched blocks length."""
+        wrong_blocks = ["A", "B"]  # Wrong length
+
+        network = SemanticNetwork()
+        with pytest.raises(ValueError, match="Blocks length.*must match X length"):
+            network.fit(sample_docs, blocks=wrong_blocks)
+
+    def test_fit_transform_with_blocks(self, sample_docs):
+        """Test fit_transform with blocks."""
+        blocks = ["Group1", "Group1", "Group2", "Group2", "Group3", "Group3"]
+        custom_embeddings = np.random.rand(len(sample_docs), 128)
+
+        network = SemanticNetwork(verbose=False, thresh=0.5)
+
+        representatives = network.fit_transform(
+            sample_docs, embeddings=custom_embeddings, blocks=blocks
+        )
+
+        assert isinstance(representatives, list)
+        assert len(representatives) <= len(sample_docs)
+        assert network.is_fitted_ is True
+        assert network.blocks_ is not None
+
+    def test_blocking_reduces_comparisons(self, sample_docs):
+        """Test that blocking reduces the number of similarity comparisons."""
+        # Create embeddings where all documents are very similar
+        base_embedding = np.random.rand(128)
+        similar_embeddings = np.array(
+            [
+                base_embedding + 0.01 * np.random.rand(128)
+                for _ in range(len(sample_docs))
+            ]
+        )
+
+        # Normalize embeddings
+        similar_embeddings = similar_embeddings / np.linalg.norm(
+            similar_embeddings, axis=1, keepdims=True
+        )
+
+        # Test without blocks
+        network_no_blocks = SemanticNetwork(verbose=False, thresh=0.8)
+        network_no_blocks.fit(sample_docs, embeddings=similar_embeddings)
+        stats_no_blocks = network_no_blocks.get_deduplication_stats()
+
+        # Test with blocks that separate documents
+        blocks = [
+            f"Block{i}" for i in range(len(sample_docs))
+        ]  # Each doc in its own block
+        network_with_blocks = SemanticNetwork(verbose=False, thresh=0.8)
+        network_with_blocks.fit(
+            sample_docs, embeddings=similar_embeddings, blocks=blocks
+        )
+        stats_with_blocks = network_with_blocks.get_deduplication_stats()
+
+        # With blocks, there should be no similarities found (each doc in separate block)
+        assert stats_with_blocks["similarity_pairs"] == 0
+        # Without blocks, there should be many similarities (all docs are similar)
+        assert stats_no_blocks["similarity_pairs"] > 0
+
 
 @pytest.mark.slow
 def test_real_model_integration():

@@ -38,6 +38,7 @@ class SemanticNetwork:
         index_: Annoy index for similarity search (available after fitting)
         graph_: NetworkX graph of document similarities (available after fitting)
         neighbor_data_: DataFrame of pairwise similarities (available after fitting)
+        blocks_: Block assignments for documents (available after fitting with blocks)
     """
 
     def __init__(
@@ -77,6 +78,7 @@ class SemanticNetwork:
         # Training data (stored during fit)
         self._docs: Optional[List[str]] = None
         self._weights: Optional[List[Union[float, int]]] = None
+        self.blocks_: Optional[np.ndarray] = None
 
     def fit(
         self,
@@ -84,6 +86,7 @@ class SemanticNetwork:
         y=None,
         weights: Optional[List[Union[float, int]]] = None,
         embeddings: Optional[np.ndarray] = None,
+        blocks: Optional[Union[List, np.ndarray]] = None,
     ) -> "SemanticNetwork":
         """
         Learn the semantic relationships between documents.
@@ -99,6 +102,10 @@ class SemanticNetwork:
                     Must be same length as X if provided.
             embeddings: Optional pre-computed embeddings array with shape (len(X), embedding_dim).
                        If provided, document embedding generation will be skipped.
+            blocks: Optional blocking variable(s) for documents. Can be:
+                   - List/array of strings or ints for single blocking variable
+                   - 2D array for multiple blocking variables (shape: len(X), n_block_vars)
+                   Only documents within the same block(s) will be compared for similarity.
 
         Returns:
             self: Returns the fitted estimator
@@ -106,6 +113,7 @@ class SemanticNetwork:
         Raises:
             ValueError: If weights provided but length doesn't match X
             ValueError: If embeddings provided but shape doesn't match X
+            ValueError: If blocks provided but length doesn't match X
         """
         if weights is not None and len(weights) != len(X):
             raise ValueError(
@@ -117,11 +125,35 @@ class SemanticNetwork:
                 f"Embeddings shape[0] ({embeddings.shape[0]}) must match X length ({len(X)})"
             )
 
+        # Validate and process blocks
+        if blocks is not None:
+            blocks_array = np.array(blocks)
+            if blocks_array.ndim == 1:
+                if len(blocks_array) != len(X):
+                    raise ValueError(
+                        f"Blocks length ({len(blocks_array)}) must match X length ({len(X)})"
+                    )
+                # Reshape to 2D for consistent handling
+                blocks_array = blocks_array.reshape(-1, 1)
+            elif blocks_array.ndim == 2:
+                if blocks_array.shape[0] != len(X):
+                    raise ValueError(
+                        f"Blocks shape[0] ({blocks_array.shape[0]}) must match X length ({len(X)})"
+                    )
+            else:
+                raise ValueError("Blocks must be 1D or 2D array")
+
+            self.blocks_ = blocks_array
+            if self.verbose:
+                n_vars = blocks_array.shape[1]
+                n_unique_blocks = len(np.unique(blocks_array.view(np.void), axis=0))
+                logger.info(
+                    f"Using {n_vars} blocking variable(s) with {n_unique_blocks} unique block(s)"
+                )
+
         # Store training data
         self._docs = X
-        self._weights = weights
-
-        # Store custom embeddings if provided
+        self._weights = weights  # Store custom embeddings if provided
         if embeddings is not None:
             self.embeddings_ = embeddings
             if self.verbose:
@@ -201,6 +233,7 @@ class SemanticNetwork:
         y=None,
         weights: Optional[List[Union[float, int]]] = None,
         embeddings: Optional[np.ndarray] = None,
+        blocks: Optional[Union[List, np.ndarray]] = None,
         return_representatives: bool = True,
     ) -> Union[List[str], Dict[int, int]]:
         """
@@ -212,13 +245,15 @@ class SemanticNetwork:
             weights: Optional list of weights for document importance
             embeddings: Optional pre-computed embeddings array with shape (len(X), embedding_dim).
                        If provided, document embedding generation will be skipped.
+            blocks: Optional blocking variable(s) for documents. Only documents within
+                   the same block(s) will be compared for similarity.
             return_representatives: If True, return list of representative documents.
                                   If False, return mapping dict.
 
         Returns:
             Either a list of representative documents or a mapping dictionary
         """
-        return self.fit(X, y, weights, embeddings).transform(
+        return self.fit(X, y, weights, embeddings, blocks).transform(
             return_representatives=return_representatives
         )
 
@@ -395,7 +430,8 @@ class SemanticNetwork:
         Find pairwise similarities between documents above a threshold.
 
         Uses the Annoy index to efficiently find nearest neighbors for each document,
-        then calculates exact similarities and filters by threshold.
+        then calculates exact similarities and filters by threshold. If blocks are
+        provided, only compares documents within the same block(s).
 
         Returns:
             DataFrame of similarities
@@ -422,29 +458,78 @@ class SemanticNetwork:
 
         results = []
 
-        # Use progress bar if verbose
-        if self.verbose:
-            iterator = tqdm(range(len(self.embeddings_)), desc="Finding similarities")
+        if self.blocks_ is not None:
+            # Use blocking: only compare documents within the same block(s)
+            if self.verbose:
+                logger.info("Using blocking for similarity search")
+
+            # Group documents by their block values
+            block_groups = {}
+            for idx in range(len(self._docs)):
+                # Convert block values to tuple for hashing
+                block_key = tuple(self.blocks_[idx])
+                if block_key not in block_groups:
+                    block_groups[block_key] = []
+                block_groups[block_key].append(idx)
+
+            if self.verbose:
+                logger.info(f"Created {len(block_groups)} blocks for comparison")
+                iterator = tqdm(block_groups.items(), desc="Processing blocks")
+            else:
+                iterator = block_groups.items()
+
+            for block_key, block_indices in iterator:
+                # Only compare documents within this block
+                for i, idx_source in enumerate(block_indices):
+                    # Calculate similarities with all other documents in the same block
+                    for idx_target in block_indices[i + 1 :]:  # Avoid duplicate pairs
+                        # Calculate cosine similarity directly from embeddings
+                        embedding_source = self.embeddings_[idx_source]
+                        embedding_target = self.embeddings_[idx_target]
+
+                        # Cosine similarity for normalized vectors
+                        similarity = np.dot(embedding_source, embedding_target)
+
+                        if similarity >= self.thresh:
+                            # Add both directions for consistency with non-blocking approach
+                            for src, tgt in [
+                                (idx_source, idx_target),
+                                (idx_target, idx_source),
+                            ]:
+                                result_dict = {
+                                    "source_idx": src,
+                                    "target_idx": tgt,
+                                    "similarity": similarity,
+                                    "source_name": self._docs[src],
+                                    "target_name": self._docs[tgt],
+                                }
+                                results.append(result_dict)
         else:
-            iterator = range(len(self.embeddings_))
+            # Original approach: use Annoy index for all documents
+            if self.verbose:
+                iterator = tqdm(
+                    range(len(self.embeddings_)), desc="Finding similarities"
+                )
+            else:
+                iterator = range(len(self.embeddings_))
 
-        for idx_source in iterator:
-            neighbors = self.index_.get_nns_by_item(
-                idx_source, self.top_k, include_distances=True
-            )
+            for idx_source in iterator:
+                neighbors = self.index_.get_nns_by_item(
+                    idx_source, self.top_k, include_distances=True
+                )
 
-            for idx_target, dist in zip(*neighbors):
-                similarity = 1 - dist  # Convert angular distance to similarity
+                for idx_target, dist in zip(*neighbors):
+                    similarity = 1 - dist  # Convert angular distance to similarity
 
-                if idx_source != idx_target and similarity >= self.thresh:
-                    result_dict = {
-                        "source_idx": idx_source,
-                        "target_idx": idx_target,
-                        "similarity": similarity,
-                        "source_name": self._docs[idx_source],
-                        "target_name": self._docs[idx_target],
-                    }
-                    results.append(result_dict)
+                    if idx_source != idx_target and similarity >= self.thresh:
+                        result_dict = {
+                            "source_idx": idx_source,
+                            "target_idx": idx_target,
+                            "similarity": similarity,
+                            "source_name": self._docs[idx_source],
+                            "target_name": self._docs[idx_target],
+                        }
+                        results.append(result_dict)
 
         self.neighbor_data_ = pd.DataFrame(results)
 
