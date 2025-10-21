@@ -1,4 +1,4 @@
-# Semnet: Semantic Networks for Text Analysis and Deduplication
+# Semnet: Semantic Networks from embeddings
 
 A Python package for building semantic networks using embeddings and graph clustering to perform intelligent deduplication of text data.
 
@@ -52,6 +52,7 @@ for doc in representatives:
 
 - **Scikit-learn style API** - Familiar fit/transform interface for ML practitioners
 - **Custom embeddings support** - Use your own pre-computed embeddings or any embedding model
+- **Blocking for performance** - Only compare documents within specified blocks for massive performance gains
 - **Multiple embedding models** - Support for any SentenceTransformer model
 - **Configurable similarity thresholds** - Control how strict the deduplication is
 - **Weighted documents** - Give more importance to certain documents when choosing representatives
@@ -128,7 +129,7 @@ import numpy as np
 # Provide your own pre-computed embeddings
 custom_embeddings = np.random.rand(len(docs), 384)  # Shape: (n_docs, embedding_dim)
 
-network = SemanticNetwork(thresh=0.3)
+network = SemanticNetwork(thresh=0.8)
 
 # Fit with custom embeddings (skips sentence transformer step)
 representatives = network.fit_transform(docs, embeddings=custom_embeddings)
@@ -136,6 +137,30 @@ representatives = network.fit_transform(docs, embeddings=custom_embeddings)
 # Or with separate fit/transform
 network.fit(docs, weights=weights, embeddings=custom_embeddings)
 representatives = network.transform()
+```
+
+### 5. Using Blocking for Performance
+
+```python
+# Blocking dramatically improves performance by only comparing documents within the same block(s)
+docs = ["John Smith", "J. Smith", "Jane Doe", "J. Doe", "Mike Johnson"]
+
+# Single blocking variable (e.g., company)
+companies = ["TechCorp", "TechCorp", "TechCorp", "TechCorp", "SalesCo"]
+
+network = SemanticNetwork(thresh=0.8)
+representatives = network.fit_transform(docs, blocks=companies)
+
+# Multiple blocking variables (e.g., company + department)
+blocks = [
+    ["TechCorp", "Engineering"],
+    ["TechCorp", "Engineering"], 
+    ["TechCorp", "Product"],
+    ["TechCorp", "Product"],
+    ["SalesCo", "Sales"]
+]
+
+representatives = network.fit_transform(docs, blocks=blocks)
 ```
 
 ## Configuration Options
@@ -151,12 +176,13 @@ representatives = network.transform()
 
 ### Method Parameters
 
-- **fit(X, y=None, weights=None, embeddings=None)**: 
+- **fit(X, y=None, weights=None, embeddings=None, blocks=None)**: 
   - X is list of documents
   - weights are optional importance scores
   - embeddings are optional pre-computed embeddings array with shape (len(X), embedding_dim)
+  - blocks are optional blocking variables (1D list/array or 2D array for multiple variables)
 - **transform(X=None, return_representatives=True)**: return_representatives controls output format
-- **fit_transform(X, y=None, weights=None, embeddings=None, return_representatives=True)**: Combined fit and transform
+- **fit_transform(X, y=None, weights=None, embeddings=None, blocks=None, return_representatives=True)**: Combined fit and transform
 
 ## Performance Tips
 
@@ -198,6 +224,7 @@ Returns `List[List[str]]` - List of groups, where each group contains similar do
 - scikit-learn
 
 ## Project origin and statement on the use of AI
+
 I love network analysis, and have explored embedding-derived [semantic networks](https://en.wikipedia.org/wiki/Semantic_network) in the past as an alternative approach to representing, clustering and querying news data. 
 
 Whilst using semantic networks for a complex deduplication task on some forthcoming research, I decided to package some of my code for others to use.
@@ -207,7 +234,7 @@ I kicked off the project by hand-refactoring my initial code into the class-base
 I then used Github Copilot in VSCode to:
 - Bootstrap scaffolding, tests, documentation, examples and typing
 - Refactor the core methods in the style of the scikit-learn API
-- Add additional functionality for convenient analysis of deduplication outcomes and to allow the use of custom embeddings.
+- Add additional functionality for convenient analysis of deduplication outcomes, blocking, and to allow the use of custom embeddings.
 
 ## Roadmap
 Semnet is a relatively simple project and I don't have plans to add further features. 
