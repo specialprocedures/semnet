@@ -53,7 +53,9 @@ class TestSemanticNetwork:
     def test_fit_weights_length_mismatch(self, sample_docs, sample_embeddings):
         """Test fit fails with mismatched weights length."""
         network = SemanticNetwork()
-        with pytest.raises(ValueError, match="Weights length.*must match embeddings length"):
+        with pytest.raises(
+            ValueError, match="Weights length.*must match embeddings length"
+        ):
             network.fit(sample_embeddings, labels=sample_docs, weights=[1.0, 2.0])
 
     def test_fit_and_transform(self, sample_docs, sample_embeddings):
@@ -119,9 +121,7 @@ class TestSemanticNetwork:
         network = SemanticNetwork(verbose=False)
 
         # Test fit_transform with custom embeddings
-        representatives = network.fit_transform(
-            custom_embeddings, labels=sample_docs
-        )
+        representatives = network.fit_transform(custom_embeddings, labels=sample_docs)
 
         assert isinstance(representatives, list)
         assert len(representatives) <= len(sample_docs)
@@ -134,7 +134,9 @@ class TestSemanticNetwork:
         wrong_embeddings = np.random.rand(len(sample_docs) - 1, 128)
 
         network = SemanticNetwork()
-        with pytest.raises(ValueError, match="Labels length.*must match embeddings length"):
+        with pytest.raises(
+            ValueError, match="Labels length.*must match embeddings length"
+        ):
             network.fit(wrong_embeddings, labels=sample_docs)
 
     def test_fit_with_blocks_1d(self, sample_docs):
@@ -180,7 +182,9 @@ class TestSemanticNetwork:
         wrong_blocks = ["A", "B"]  # Wrong length
 
         network = SemanticNetwork()
-        with pytest.raises(ValueError, match="Blocks length.*must match embeddings length"):
+        with pytest.raises(
+            ValueError, match="Blocks length.*must match embeddings length"
+        ):
             network.fit(sample_embeddings, labels=sample_docs, blocks=wrong_blocks)
 
     def test_fit_transform_with_blocks(self, sample_docs):
@@ -239,10 +243,10 @@ def test_fit_with_custom_ids():
     docs = ["doc1", "doc2", "doc3"]
     embeddings = np.random.rand(3, 128)
     custom_ids = ["id_a", "id_b", "id_c"]
-    
+
     network = SemanticNetwork(verbose=False)
     network.fit(embeddings, labels=docs, ids=custom_ids)
-    
+
     assert network.is_fitted_ is True
     # Check that IDs are stored in graph nodes
     for i, node_id in enumerate(custom_ids):
@@ -253,14 +257,11 @@ def test_fit_with_node_data():
     """Test fitting with additional node data."""
     docs = ["doc1", "doc2", "doc3"]
     embeddings = np.random.rand(3, 128)
-    node_data = {
-        "category": ["cat1", "cat2", "cat1"], 
-        "score": [0.8, 0.9, 0.7]
-    }
-    
+    node_data = {"category": ["cat1", "cat2", "cat1"], "score": [0.8, 0.9, 0.7]}
+
     network = SemanticNetwork(verbose=False)
     network.fit(embeddings, labels=docs, node_data=node_data)
-    
+
     assert network.is_fitted_ is True
     # Check that node data is stored in graph nodes
     for i in range(3):
@@ -273,9 +274,11 @@ def test_fit_node_data_length_mismatch():
     docs = ["doc1", "doc2", "doc3"]
     embeddings = np.random.rand(3, 128)
     wrong_node_data = {"category": ["cat1", "cat2"]}  # Wrong length
-    
+
     network = SemanticNetwork()
-    with pytest.raises(ValueError, match="Node data 'category' length.*must match embeddings length"):
+    with pytest.raises(
+        ValueError, match="Node data 'category' length.*must match embeddings length"
+    ):
         network.fit(embeddings, labels=docs, node_data=wrong_node_data)
 
 
@@ -283,7 +286,7 @@ def test_fit_labels_length_mismatch():
     """Test fit fails with mismatched labels length."""
     embeddings = np.random.rand(3, 128)
     wrong_labels = ["doc1", "doc2"]  # Wrong length
-    
+
     network = SemanticNetwork()
     with pytest.raises(ValueError, match="Labels length.*must match embeddings length"):
         network.fit(embeddings, labels=wrong_labels)
@@ -293,7 +296,7 @@ def test_fit_ids_length_mismatch():
     """Test fit fails with mismatched IDs length."""
     embeddings = np.random.rand(3, 128)
     wrong_ids = ["id1", "id2"]  # Wrong length
-    
+
     network = SemanticNetwork()
     with pytest.raises(ValueError, match="IDs length.*must match embeddings length"):
         network.fit(embeddings, ids=wrong_ids)
@@ -302,14 +305,14 @@ def test_fit_ids_length_mismatch():
 def test_fit_with_defaults():
     """Test fitting with only embeddings (all other params default)."""
     embeddings = np.random.rand(3, 128)
-    
+
     network = SemanticNetwork(verbose=False)
     network.fit(embeddings)
-    
+
     assert network.is_fitted_ is True
     # Check that default labels are string indices
     assert network._labels == ["0", "1", "2"]
-    # Check that default IDs are integer indices  
+    # Check that default IDs are integer indices
     assert network._ids == [0, 1, 2]
     # Check graph has correct node names
     for i in range(3):
