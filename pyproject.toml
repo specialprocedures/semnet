@@ -9,7 +9,7 @@ description = "Semantic network creation with embeddings"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Ian", email = "ian@igdr.ch.com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
