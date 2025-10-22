@@ -101,7 +101,9 @@ class SemanticNetwork:
             ids: Optional list of custom IDs for the embeddings.
                 If not provided, will use integer indices as IDs.
             node_data: Optional dictionary containing additional data to attach to nodes.
-                      Keys should be node attributes, values should be lists of same length as embeddings.
+                      Format: {node_index: {attribute_name: value, ...}, ...}
+                      OR {node_index: single_value, ...} (will be stored as {'value': single_value})
+                      Only nodes present in the dictionary will get additional attributes.
             weights: Optional list of weights for document importance.
                     Higher weights = more likely to be chosen as representative.
                     Must be same length as embeddings if provided.
@@ -138,11 +140,37 @@ class SemanticNetwork:
             )
 
         if node_data is not None:
-            for key, values in node_data.items():
-                if len(values) != n_docs:
-                    raise ValueError(
-                        f"Node data '{key}' length ({len(values)}) must match embeddings length ({n_docs})"
-                    )
+            # Validate node_data format: should be {node_index: {attribute_dict}} or {node_index: value}
+            if not isinstance(node_data, dict):
+                raise ValueError("Node data must be a dictionary")
+
+            # Check if all keys are integers (node indices)
+            non_integer_keys = [
+                k for k in node_data.keys() if not isinstance(k, (int, np.integer))
+            ]
+            if non_integer_keys:
+                raise ValueError(
+                    f"Node data keys must be integer node indices, got: {non_integer_keys}"
+                )
+
+            # Validate that node_data keys are valid node indices
+            invalid_indices = [
+                idx for idx in node_data.keys() if idx >= n_docs or idx < 0
+            ]
+            if invalid_indices:
+                raise ValueError(
+                    f"Node data contains invalid indices {invalid_indices}. Indices must be 0 <= idx < {n_docs}"
+                )
+
+            # Convert single values to dictionary format for consistency
+            # If values are not dictionaries, wrap them in a dictionary with 'value' key
+            processed_node_data = {}
+            for k, v in node_data.items():
+                if isinstance(v, dict):
+                    processed_node_data[k] = v
+                else:
+                    processed_node_data[k] = {"value": v}
+            node_data = processed_node_data
 
         # Validate and process blocks
         if blocks is not None:
@@ -576,10 +604,10 @@ class SemanticNetwork:
             # Set custom ID if provided
             if self._ids is not None:
                 graph.nodes[node]["id"] = self._ids[node]
-            # Set additional node data if provided
-            if self._node_data is not None:
-                for key, values in self._node_data.items():
-                    graph.nodes[node][key] = values[node]
+            # Set additional node data if provided for this specific node
+            if self._node_data is not None and node in self._node_data:
+                for attr_name, attr_value in self._node_data[node].items():
+                    graph.nodes[node][attr_name] = attr_value
 
         # Add isolated nodes (documents with no similarities above threshold)
         for i in range(len(self._labels)):
@@ -587,9 +615,9 @@ class SemanticNetwork:
                 graph.add_node(i, name=self._labels[i], weight=weight_dict.get(i, 1.0))
                 if self._ids is not None:
                     graph.nodes[i]["id"] = self._ids[i]
-                if self._node_data is not None:
-                    for key, values in self._node_data.items():
-                        graph.nodes[i][key] = values[i]
+                if self._node_data is not None and i in self._node_data:
+                    for attr_name, attr_value in self._node_data[i].items():
+                        graph.nodes[i][attr_name] = attr_value
 
         self.graph_ = graph
 

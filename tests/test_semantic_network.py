@@ -257,29 +257,53 @@ def test_fit_with_node_data():
     """Test fitting with additional node data."""
     docs = ["doc1", "doc2", "doc3"]
     embeddings = np.random.rand(3, 128)
-    node_data = {"category": ["cat1", "cat2", "cat1"], "score": [0.8, 0.9, 0.7]}
+    node_data = {
+        0: {"category": "cat1", "score": 0.8},
+        1: {"category": "cat2", "score": 0.9},
+        2: {"category": "cat1", "score": 0.7},
+    }
 
     network = SemanticNetwork(verbose=False)
     network.fit(embeddings, labels=docs, node_data=node_data)
 
-    assert network.is_fitted_ is True
-    # Check that node data is stored in graph nodes
-    for i in range(3):
-        assert network.graph_.nodes[i]["category"] == node_data["category"][i]
-        assert network.graph_.nodes[i]["score"] == node_data["score"][i]
+    assert network.graph_ is not None
+    # Check that node data was stored
+    for node in network.graph_.nodes():
+        if node in node_data:
+            for attr, value in node_data[node].items():
+                assert network.graph_.nodes[node][attr] == value
 
 
-def test_fit_node_data_length_mismatch():
-    """Test fit fails with mismatched node_data length."""
+def test_fit_node_data_invalid_indices():
+    """Test fit fails with invalid node indices in node_data."""
     docs = ["doc1", "doc2", "doc3"]
     embeddings = np.random.rand(3, 128)
-    wrong_node_data = {"category": ["cat1", "cat2"]}  # Wrong length
+    # Invalid index (3 is out of bounds for 3 documents)
+    wrong_node_data = {3: {"category": "cat1"}}
 
     network = SemanticNetwork()
     with pytest.raises(
-        ValueError, match="Node data 'category' length.*must match embeddings length"
+        ValueError, match="Node data contains invalid indices.*Indices must be"
     ):
         network.fit(embeddings, labels=docs, node_data=wrong_node_data)
+
+
+def test_fit_node_data_invalid_format():
+    """Test fit fails with invalid node_data format."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+
+    # Test string keys (old format)
+    wrong_node_data1 = {"category": ["cat1", "cat2", "cat1"]}
+    network = SemanticNetwork()
+    with pytest.raises(ValueError, match="Node data keys must be integer node indices"):
+        network.fit(embeddings, labels=docs, node_data=wrong_node_data1)
+
+    # Test that single values are accepted (converted to {'value': value})
+    node_data_single = {0: "some_value", 1: 42}
+    network.fit(embeddings, labels=docs, node_data=node_data_single)
+    assert network.graph_.nodes[0]["value"] == "some_value"
+    assert network.graph_.nodes[1]["value"] == 42
 
 
 def test_fit_labels_length_mismatch():
