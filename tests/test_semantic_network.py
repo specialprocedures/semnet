@@ -343,6 +343,281 @@ def test_fit_with_defaults():
         assert network.graph_.nodes[i]["name"] == str(i)
 
 
+def test_to_pandas_basic():
+    """Test basic to_pandas functionality."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+
+    network = SemanticNetwork(
+        verbose=False, thresh=0.0
+    )  # Low threshold to ensure connections
+    network.fit(embeddings, labels=docs)
+
+    nodes, edges = network.to_pandas()
+
+    # Check nodes DataFrame
+    assert isinstance(nodes, pd.DataFrame)
+    assert len(nodes) == 3
+    assert "name" in nodes.columns
+    assert "weight" in nodes.columns
+    assert "id" in nodes.columns
+
+    # Check that node names match our docs
+    node_names = nodes["name"].tolist()
+    assert set(node_names) == set(docs)
+
+    # Check edges DataFrame
+    assert isinstance(edges, pd.DataFrame)
+    # Edges may or may not exist depending on similarity, but should be a DataFrame
+
+
+def test_to_pandas_with_node_data():
+    """Test to_pandas with custom node data."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+    node_data = {
+        0: {"category": "tech", "priority": 1},
+        1: {"category": "science", "priority": 2},
+        2: {"category": "tech", "priority": 1},
+    }
+
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs, node_data=node_data)
+
+    nodes, edges = network.to_pandas()
+
+    # Check that custom node data is included
+    assert "category" in nodes.columns
+    assert "priority" in nodes.columns
+
+    # Check specific values
+    assert nodes.loc[0, "category"] == "tech"
+    assert nodes.loc[1, "priority"] == 2
+    assert nodes.loc[2, "category"] == "tech"
+
+
+def test_to_pandas_with_custom_ids():
+    """Test to_pandas with custom IDs."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+    custom_ids = ["id_a", "id_b", "id_c"]
+
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs, ids=custom_ids)
+
+    nodes, edges = network.to_pandas()
+
+    # Check that custom IDs are included
+    assert "id" in nodes.columns
+    assert nodes.loc[0, "id"] == "id_a"
+    assert nodes.loc[1, "id"] == "id_b"
+    assert nodes.loc[2, "id"] == "id_c"
+
+
+def test_to_pandas_with_weights():
+    """Test to_pandas with custom weights."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+    weights = [1.5, 2.0, 0.5]
+
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs, weights=weights)
+
+    nodes, edges = network.to_pandas()
+
+    # Check that weights are included
+    assert "weight" in nodes.columns
+    assert nodes.loc[0, "weight"] == 1.5
+    assert nodes.loc[1, "weight"] == 2.0
+    assert nodes.loc[2, "weight"] == 0.5
+
+
+def test_to_pandas_with_similarities():
+    """Test to_pandas with forced similarities."""
+    docs = ["doc1", "doc2", "doc3"]
+    # Create very similar embeddings to ensure connections
+    base_embedding = np.random.rand(128)
+    embeddings = np.array(
+        [
+            base_embedding + 0.001 * np.random.rand(128),
+            base_embedding + 0.001 * np.random.rand(128),
+            base_embedding + 0.001 * np.random.rand(128),
+        ]
+    )
+
+    # Normalize embeddings for consistent similarity calculation
+    embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+    network = SemanticNetwork(verbose=False, thresh=0.8)
+    network.fit(embeddings, labels=docs)
+
+    nodes, edges = network.to_pandas()
+
+    # Should have edges due to high similarity
+    if len(edges) > 0:
+        assert "source" in edges.columns
+        assert "target" in edges.columns
+        assert "similarity" in edges.columns
+
+        # Check that similarities are above threshold
+        assert (edges["similarity"] >= 0.8).all()
+
+
+def test_to_pandas_no_edges():
+    """Test to_pandas when no similarities are found."""
+    docs = ["doc1", "doc2", "doc3"]
+    # Create very different embeddings
+    embeddings = np.array(
+        [
+            [1.0] + [0.0] * 127,  # Different directions
+            [0.0] + [1.0] + [0.0] * 126,
+            [0.0] * 2 + [1.0] + [0.0] * 125,
+        ]
+    )
+
+    network = SemanticNetwork(verbose=False, thresh=0.9)  # High threshold
+    network.fit(embeddings, labels=docs)
+
+    nodes, edges = network.to_pandas()
+
+    # Should still have nodes
+    assert len(nodes) == 3
+    assert "name" in nodes.columns
+
+    # Edges may be empty but should be a DataFrame
+    assert isinstance(edges, pd.DataFrame)
+
+
+def test_to_pandas_not_fitted():
+    """Test to_pandas fails when not fitted."""
+    network = SemanticNetwork()
+
+    with pytest.raises(ValueError, match="not fitted yet"):
+        network.to_pandas()
+
+
+def test_to_pandas_single_value_node_data():
+    """Test to_pandas with single-value node data format."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+    # Use the single-value format that gets converted to {'value': value}
+    node_data = {0: "author1", 1: "author2", 2: "author3"}
+
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs, node_data=node_data)
+
+    nodes, edges = network.to_pandas()
+
+    # Check that single values are stored under 'value' column
+    assert "value" in nodes.columns
+    assert nodes.loc[0, "value"] == "author1"
+    assert nodes.loc[1, "value"] == "author2"
+    assert nodes.loc[2, "value"] == "author3"
+
+
+def test_to_pandas_with_custom_graph():
+    """Test to_pandas with a custom graph parameter."""
+    docs = ["doc1", "doc2", "doc3", "doc4"]
+    embeddings = np.random.rand(4, 128)
+
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs)
+
+    # Create a subgraph with only nodes 0, 1, 2
+    subgraph = network.graph_.subgraph([0, 1, 2])
+
+    # Export the subgraph
+    nodes, edges = network.to_pandas(subgraph)
+
+    # Should only have 3 nodes
+    assert len(nodes) == 3
+    assert set(nodes.index) == {0, 1, 2}
+
+    # Check that node attributes are preserved
+    assert "name" in nodes.columns
+    assert nodes.loc[0, "name"] == "doc1"
+    assert nodes.loc[1, "name"] == "doc2"
+    assert nodes.loc[2, "name"] == "doc3"
+
+
+def test_to_pandas_with_empty_custom_graph():
+    """Test to_pandas with an empty custom graph."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs)
+
+    # Create an empty graph
+    empty_graph = nx.Graph()
+
+    # Export the empty graph
+    nodes, edges = network.to_pandas(empty_graph)
+
+    # Should have empty DataFrames
+    assert len(nodes) == 0
+    assert len(edges) == 0
+    assert isinstance(nodes, pd.DataFrame)
+    assert isinstance(edges, pd.DataFrame)
+
+
+def test_to_pandas_custom_graph_with_attributes():
+    """Test to_pandas with a custom graph that has custom attributes."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs)
+
+    # Create a custom graph with additional attributes
+    custom_graph = nx.Graph()
+    custom_graph.add_node(0, name="Custom Node 1", custom_attr="value1")
+    custom_graph.add_node(1, name="Custom Node 2", custom_attr="value2")
+    custom_graph.add_edge(0, 1, weight=0.5, custom_edge_attr="edge_value")
+
+    # Export the custom graph
+    nodes, edges = network.to_pandas(custom_graph)
+
+    # Check nodes
+    assert len(nodes) == 2
+    assert "custom_attr" in nodes.columns
+    assert nodes.loc[0, "custom_attr"] == "value1"
+    assert nodes.loc[1, "custom_attr"] == "value2"
+
+    # Check edges
+    assert len(edges) == 1
+    assert "custom_edge_attr" in edges.columns
+    assert edges.iloc[0]["custom_edge_attr"] == "edge_value"
+
+
+def test_to_pandas_unfitted_with_custom_graph():
+    """Test to_pandas with custom graph on unfitted network."""
+    # Create unfitted network
+    network = SemanticNetwork()
+
+    # Create a custom graph
+    custom_graph = nx.Graph()
+    custom_graph.add_node(0, name="Node 1")
+    custom_graph.add_node(1, name="Node 2")
+    custom_graph.add_edge(0, 1, similarity=0.8)
+
+    # Should work even though network is not fitted
+    nodes, edges = network.to_pandas(custom_graph)
+
+    assert len(nodes) == 2
+    assert len(edges) == 1
+    assert nodes.loc[0, "name"] == "Node 1"
+    assert edges.iloc[0]["similarity"] == 0.8
+
+
+def test_to_pandas_unfitted_no_graph():
+    """Test to_pandas fails when unfitted and no graph provided."""
+    network = SemanticNetwork()
+
+    with pytest.raises(ValueError, match="not fitted yet.*provide a graph parameter"):
+        network.to_pandas()
+
+
 @pytest.mark.slow
 def test_real_model_integration():
     """Test with real embeddings from sentence-transformers (slower)."""

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union, Literal
+from typing import Dict, List, Optional, Union, Literal, Tuple
 import logging
 
 import networkx as nx
@@ -25,6 +25,14 @@ class SemanticNetwork:
     3. Constructing a graph where edges represent semantic similarity
 
     The transformation process identifies duplicate groups and returns representatives.
+
+    Key Methods:
+        fit(): Learn semantic relationships from provided embeddings
+        transform(): Apply deduplication to return representatives or mappings
+        fit_transform(): Combined fit and transform in one step
+        get_deduplication_stats(): Get detailed statistics about deduplication results
+        get_duplicate_groups(): Get groups of similar documents
+        to_pandas(): Export graph structure to pandas DataFrames for analysis
 
     Attributes:
         metric: Distance metric for Annoy index
@@ -628,6 +636,73 @@ class SemanticNetwork:
             )
 
         return graph
+
+    def to_pandas(
+        self, graph: Optional[nx.Graph] = None
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Export a NetworkX graph to pandas DataFrames.
+
+        By default, exports the fitted semantic network graph. Optionally accepts
+        an arbitrary NetworkX graph (useful for subgraphs or modified graphs).
+
+        Args:
+            graph: Optional NetworkX graph to export. If None (default), uses the
+                  fitted semantic network graph (self.graph_).
+
+        Returns:
+            Tuple[pd.DataFrame, pd.DataFrame]: A tuple containing:
+                - nodes (pd.DataFrame): Node attributes with index as node ID.
+                  Columns include all node attributes from the graph.
+                - edges (pd.DataFrame): Edge list with columns 'source', 'target',
+                  and any edge attributes (e.g., 'similarity').
+
+        Raises:
+            ValueError: If the model hasn't been fitted yet and no graph is provided
+            ValueError: If no graph is available (neither fitted nor provided)
+
+        Examples:
+            >>> # Export the main fitted graph
+            >>> network = SemanticNetwork(thresh=0.8)
+            >>> network.fit(embeddings, labels=docs)
+            >>> nodes, edges = network.to_pandas()
+
+            >>> # Export a subgraph
+            >>> subgraph = network.graph_.subgraph([0, 1, 2])
+            >>> sub_nodes, sub_edges = network.to_pandas(subgraph)
+
+        Note:
+            - When using the default fitted graph, node indices correspond to original document order
+            - When using a custom graph, node indices depend on the provided graph structure
+            - If no edges exist in the graph, edges DataFrame will be empty but valid
+            - All node and edge attributes are preserved in the DataFrames
+        """
+        # Use provided graph or fall back to fitted graph
+        target_graph = graph if graph is not None else self.graph_
+
+        if target_graph is None:
+            if not self.is_fitted_:
+                raise ValueError(
+                    "This SemanticNetwork instance is not fitted yet. Call 'fit' first or provide a graph parameter."
+                )
+            else:
+                raise ValueError(
+                    "No graph found. This should not happen after fitting."
+                )
+
+        # Convert nodes to DataFrame
+        nodes = pd.DataFrame.from_dict(
+            dict(target_graph.nodes(data=True)), orient="index"
+        )
+
+        # Convert edges to DataFrame
+        if target_graph.number_of_edges() > 0:
+            edges = nx.to_pandas_edgelist(target_graph)
+        else:
+            # Create empty DataFrame with expected columns if no edges
+            edges = pd.DataFrame(columns=["source", "target"])
+
+        return nodes, edges
 
     def _get_deduplication_mapping(self) -> Dict[int, int]:
         """
