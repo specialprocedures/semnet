@@ -1,19 +1,22 @@
-# Semnet: Semantic Networks from embeddings
+# Semnet: Networks from embeddings
 
-A Python package for building semantic networks using embeddings and graph clustering to perform intelligent deduplication of text data.
+Semnet constructs network structures from embeddings, facilitating graph operations over embedded documents, images and more.
 
 ## Overview
 
-Semnet combines three powerful techniques for semantic deduplication:
+Semnet provides semantic deduplication using three key components:
 
-1. **Sentence Embeddings** - Uses pre-trained transformer models to create dense vector representations of text
+1. **User-Provided Embeddings** - Bring your own embeddings from any source (OpenAI, sentence-transformers, etc.)
 2. **Approximate Nearest Neighbor Search** - Efficiently finds similar documents using Annoy indexing
 3. **Graph Clustering** - Builds similarity graphs and finds connected components to group duplicates
+
+This design gives you complete flexibility over the embedding generation process while leveraging Semnet's optimized similarity search and clustering.
 
 ## Quick Start
 
 ```python
 from semnet import SemanticNetwork
+from sentence_transformers import SentenceTransformer  # or any embedding provider
 
 # Your documents
 docs = [
@@ -24,18 +27,21 @@ docs = [
     "Machine learning with Python"  # Similar to fourth
 ]
 
+# Generate embeddings (use any embedding method you prefer)
+embedding_model = SentenceTransformer("BAAI/bge-base-en-v1.5")
+embeddings = embedding_model.encode(docs)
+
 # Optional: provide weights for document importance
 weights = [1.0, 0.5, 2.0, 3.0, 2.5]
 
-# Create and configure semantic network
+# Create and configure semantic network (no embedding model needed)
 network = SemanticNetwork(
-    embedding_model="BAAI/bge-base-en-v1.5",
     thresh=0.8,
     verbose=True
 )
 
-# Fit and transform documents
-representatives = network.fit_transform(docs, weights=weights)
+# Fit and transform documents with your embeddings
+representatives = network.fit_transform(embeddings, labels=docs, weights=weights)
 
 # Get statistics
 stats = network.get_deduplication_stats()
@@ -51,9 +57,8 @@ for doc in representatives:
 ## Features
 
 - **Scikit-learn style API** - Familiar fit/transform interface for ML practitioners
-- **Custom embeddings support** - Use your own pre-computed embeddings or any embedding model
+- **Bring your own embeddings** - Use any embedding source (OpenAI, Cohere, sentence-transformers, etc.)
 - **Blocking for performance** - Only compare documents within specified blocks for massive performance gains
-- **Multiple embedding models** - Support for any SentenceTransformer model
 - **Configurable similarity thresholds** - Control how strict the deduplication is
 - **Weighted documents** - Give more importance to certain documents when choosing representatives
 - **Fast similarity search** - Uses Annoy for efficient approximate nearest neighbor search
@@ -81,34 +86,51 @@ pip install -e ".[dev]"
 
 ```python
 from semnet import SemanticNetwork
+from sentence_transformers import SentenceTransformer
 
+# Generate embeddings
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(your_documents)
+
+# Create network and deduplicate
 network = SemanticNetwork(thresh=0.8)
-representatives = network.fit_transform(your_documents)
+representatives = network.fit_transform(embeddings, labels=your_documents)
 ```
 
 ### 2. Advanced Usage with Weights
 
 ```python
+from sentence_transformers import SentenceTransformer
+
 # Documents with importance weights
 docs = ["doc1", "doc2", "doc3"]
 weights = [1.0, 2.0, 0.5]  # doc2 is most important
 
+# Generate embeddings
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
 network = SemanticNetwork(
-    embedding_model="all-MiniLM-L6-v2",
     thresh=0.85,
     verbose=True
 )
 
-representatives = network.fit_transform(docs, weights=weights)
+representatives = network.fit_transform(docs, embeddings, weights=weights)
 ```
 
 ### 3. Separate Fit and Transform
 
 ```python
+from sentence_transformers import SentenceTransformer
+
+# Generate embeddings
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
 network = SemanticNetwork()
 
 # Fit the model on training documents
-network.fit(docs, weights=weights)
+network.fit(embeddings, labels=docs, weights=weights)
 
 # Transform to get representatives
 representatives = network.transform()
@@ -121,35 +143,44 @@ stats = network.get_deduplication_stats()
 groups = network.get_duplicate_groups()
 ```
 
-### 4. Using Custom Embeddings
+### 4. Using Different Embedding Sources
 
 ```python
 import numpy as np
+from sentence_transformers import SentenceTransformer
 
-# Provide your own pre-computed embeddings
-custom_embeddings = np.random.rand(len(docs), 384)  # Shape: (n_docs, embedding_dim)
+# Option 1: Use sentence-transformers
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
+# Option 2: Use OpenAI embeddings (requires openai package)
+# import openai
+# embeddings = openai.Embedding.create(input=docs, model="text-embedding-ada-002")
+
+# Option 3: Use your own pre-computed embeddings
+# custom_embeddings = np.random.rand(len(docs), 384)  # Shape: (n_docs, embedding_dim)
 
 network = SemanticNetwork(thresh=0.8)
-
-# Fit with custom embeddings (skips sentence transformer step)
-representatives = network.fit_transform(docs, embeddings=custom_embeddings)
-
-# Or with separate fit/transform
-network.fit(docs, weights=weights, embeddings=custom_embeddings)
-representatives = network.transform()
+representatives = network.fit_transform(embeddings, labels=docs)
 ```
 
 ### 5. Using Blocking for Performance
 
 ```python
+from sentence_transformers import SentenceTransformer
+
 # Blocking dramatically improves performance by only comparing documents within the same block(s)
 docs = ["John Smith", "J. Smith", "Jane Doe", "J. Doe", "Mike Johnson"]
+
+# Generate embeddings
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
 
 # Single blocking variable (e.g., company)
 companies = ["TechCorp", "TechCorp", "TechCorp", "TechCorp", "SalesCo"]
 
 network = SemanticNetwork(thresh=0.8)
-representatives = network.fit_transform(docs, blocks=companies)
+representatives = network.fit_transform(embeddings, labels=docs, blocks=companies)
 
 # Multiple blocking variables (e.g., company + department)
 blocks = [
@@ -160,14 +191,46 @@ blocks = [
     ["SalesCo", "Sales"]
 ]
 
-representatives = network.fit_transform(docs, blocks=blocks)
+representatives = network.fit_transform(embeddings, labels=docs, blocks=blocks)
+```
+
+### 6. Advanced Node Data and IDs
+
+```python
+from sentence_transformers import SentenceTransformer
+
+docs = ["Document 1", "Document 2", "Document 3"]
+custom_ids = ["doc_001", "doc_002", "doc_003"]
+
+# Additional metadata for each document
+node_data = {
+    "category": ["tech", "science", "tech"],
+    "priority": [1, 2, 1],
+    "source": ["web", "paper", "blog"]
+}
+
+# Generate embeddings
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
+network = SemanticNetwork(thresh=0.8)
+representatives = network.fit_transform(
+    embeddings, 
+    labels=docs, 
+    ids=custom_ids, 
+    node_data=node_data
+)
+
+# Access additional data through the graph
+for node_id in network.graph_.nodes():
+    node = network.graph_.nodes[node_id]
+    print(f"ID: {node['id']}, Category: {node['category']}, Priority: {node['priority']}")
 ```
 
 ## Configuration Options
 
 ### SemanticNetwork Parameters
 
-- **embedding_model**: Any SentenceTransformer model name or path (default: "BAAI/bge-base-en-v1.5")
 - **metric**: Distance metric for Annoy index ('angular', 'euclidean', etc.) (default: 'angular')
 - **n_trees**: Number of trees for Annoy index (more = better accuracy, slower) (default: 10)
 - **thresh**: Similarity threshold (0.0 to 1.0) (default: 0.7)
@@ -176,13 +239,15 @@ representatives = network.fit_transform(docs, blocks=blocks)
 
 ### Method Parameters
 
-- **fit(X, y=None, weights=None, embeddings=None, blocks=None)**: 
-  - X is list of documents
+- **fit(embeddings, labels=None, ids=None, node_data=None, weights=None, blocks=None)**: 
+  - embeddings are required pre-computed embeddings array with shape (n_docs, embedding_dim)
+  - labels are optional text labels/documents for the embeddings
+  - ids are optional custom IDs for the embeddings  
+  - node_data is optional dictionary containing additional data to attach to nodes
   - weights are optional importance scores
-  - embeddings are optional pre-computed embeddings array with shape (len(X), embedding_dim)
   - blocks are optional blocking variables (1D list/array or 2D array for multiple variables)
 - **transform(X=None, return_representatives=True)**: return_representatives controls output format
-- **fit_transform(X, y=None, weights=None, embeddings=None, blocks=None, return_representatives=True)**: Combined fit and transform
+- **fit_transform(embeddings, labels=None, ids=None, node_data=None, weights=None, blocks=None, return_representatives=True)**: Combined fit and transform
 
 ## Performance Tips
 
@@ -253,7 +318,7 @@ If you use Semnet in academic work, please cite:
 
 ```bibtex
 @software{semnet,
-  title={Semnet: Semantic Networks for Text Analysis and Deduplication},
+  title={Semnet: Networks from embeddings},
   author={Ian Goodrich},
   year={2025},
   url={https://github.com/specialprocedures/semnet}
