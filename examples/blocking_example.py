@@ -5,6 +5,8 @@ Example of using Semnet with blocking for improved performance.
 This example shows how to use blocking to only compare documents
 within the same block(s), which can dramatically improve performance
 for large datasets where you know certain groupings make sense.
+
+Users must provide their own embeddings.
 """
 
 import numpy as np
@@ -112,7 +114,7 @@ def main():
     )
 
     representatives_no_blocks = network_no_blocks.fit_transform(
-        documents, embeddings=embeddings
+        embeddings, labels=documents
     )
 
     stats_no_blocks = network_no_blocks.get_deduplication_stats()
@@ -131,7 +133,7 @@ def main():
     )
 
     representatives_with_blocks = network_with_blocks.fit_transform(
-        documents, embeddings=embeddings, blocks=blocks
+        embeddings, labels=documents, blocks=blocks
     )
 
     stats_with_blocks = network_with_blocks.get_deduplication_stats()

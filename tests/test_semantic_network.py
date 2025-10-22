@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import networkx as nx
-from unittest.mock import Mock, patch
 
 from semnet import SemanticNetwork
 
@@ -30,24 +29,15 @@ class TestSemanticNetwork:
         return [1.0, 0.5, 2.0, 1.5, 3.0, 2.5]
 
     @pytest.fixture
-    def semantic_network(self, sample_docs):
-        """SemanticNetwork instance with mock model for testing."""
-        with patch("semnet.semnet.SentenceTransformer") as mock_st:
-            # Mock the sentence transformer
-            mock_model = Mock()
-            mock_model.encode.return_value = np.random.rand(len(sample_docs), 384)
-            mock_st.return_value = mock_model
-
-            network = SemanticNetwork(embedding_model="test-model", verbose=False)
-            # Fit the network with sample docs
-            network.fit(sample_docs)
-            return network
+    def sample_embeddings(self, sample_docs):
+        """Sample embeddings for testing."""
+        np.random.seed(42)  # For reproducible tests
+        return np.random.rand(len(sample_docs), 128)
 
     def test_init_basic(self, sample_docs):
         """Test basic initialization."""
         network = SemanticNetwork()
 
-        assert network.embedding_model_name == "BAAI/bge-base-en-v1.5"
         assert network.n_trees == 10
         assert network.metric == "angular"
         assert network.verbose is False
@@ -55,55 +45,42 @@ class TestSemanticNetwork:
 
     def test_init_with_weights(self, sample_docs, sample_weights):
         """Test initialization with custom parameters."""
-        network = SemanticNetwork(
-            embedding_model="custom-model", metric="euclidean", thresh=0.5, verbose=True
-        )
-        assert network.embedding_model_name == "custom-model"
+        network = SemanticNetwork(metric="euclidean", thresh=0.5, verbose=True)
         assert network.metric == "euclidean"
         assert network.thresh == 0.5
         assert network.verbose is True
 
-    def test_fit_weights_length_mismatch(self, sample_docs):
+    def test_fit_weights_length_mismatch(self, sample_docs, sample_embeddings):
         """Test fit fails with mismatched weights length."""
         network = SemanticNetwork()
-        with pytest.raises(ValueError, match="Weights length.*must match X length"):
-            network.fit(sample_docs, weights=[1.0, 2.0])
+        with pytest.raises(ValueError, match="Weights length.*must match embeddings length"):
+            network.fit(sample_embeddings, labels=sample_docs, weights=[1.0, 2.0])
 
-    def test_fit_and_transform(self, sample_docs):
+    def test_fit_and_transform(self, sample_docs, sample_embeddings):
         """Test fitting and transforming."""
-        with patch("semnet.semnet.SentenceTransformer") as mock_st:
-            mock_model = Mock()
-            mock_model.encode.return_value = np.random.rand(len(sample_docs), 384)
-            mock_st.return_value = mock_model
+        network = SemanticNetwork(verbose=False)
 
-            network = SemanticNetwork(verbose=False)
+        # Test fit
+        result = network.fit(sample_embeddings, labels=sample_docs)
+        assert result is network  # Should return self
+        assert network.is_fitted_ is True
+        assert network.embeddings_ is not None
+        assert network.embeddings_.shape[0] == len(sample_docs)
 
-            # Test fit
-            result = network.fit(sample_docs)
-            assert result is network  # Should return self
-            assert network.is_fitted_ is True
-            assert network.embeddings_ is not None
-            assert network.embeddings_.shape[0] == len(sample_docs)
+        # Test transform
+        representatives = network.transform()
+        assert isinstance(representatives, list)
+        assert len(representatives) <= len(sample_docs)
 
-            # Test transform
-            representatives = network.transform()
-            assert isinstance(representatives, list)
-            assert len(representatives) <= len(sample_docs)
-
-    def test_fit_transform(self, sample_docs):
+    def test_fit_transform(self, sample_docs, sample_embeddings):
         """Test fit_transform method."""
-        with patch("semnet.semnet.SentenceTransformer") as mock_st:
-            mock_model = Mock()
-            mock_model.encode.return_value = np.random.rand(len(sample_docs), 384)
-            mock_st.return_value = mock_model
+        network = SemanticNetwork(verbose=False)
 
-            network = SemanticNetwork(verbose=False)
-
-            # Test fit_transform
-            representatives = network.fit_transform(sample_docs)
-            assert isinstance(representatives, list)
-            assert len(representatives) <= len(sample_docs)
-            assert network.is_fitted_ is True
+        # Test fit_transform
+        representatives = network.fit_transform(sample_embeddings, labels=sample_docs)
+        assert isinstance(representatives, list)
+        assert len(representatives) <= len(sample_docs)
+        assert network.is_fitted_ is True
 
     def test_transform_not_fitted(self):
         """Test transform fails when not fitted."""
@@ -111,18 +88,13 @@ class TestSemanticNetwork:
         with pytest.raises(ValueError, match="not fitted yet"):
             network.transform()
 
-    def test_get_duplicate_groups(self, sample_docs):
+    def test_get_duplicate_groups(self, sample_docs, sample_embeddings):
         """Test getting duplicate groups."""
-        with patch("semnet.semnet.SentenceTransformer") as mock_st:
-            mock_model = Mock()
-            mock_model.encode.return_value = np.random.rand(len(sample_docs), 384)
-            mock_st.return_value = mock_model
+        network = SemanticNetwork(verbose=False)
+        network.fit(sample_embeddings, labels=sample_docs)
 
-            network = SemanticNetwork(verbose=False)
-            network.fit(sample_docs)
-
-            groups = network.get_duplicate_groups()
-            assert isinstance(groups, list)
+        groups = network.get_duplicate_groups()
+        assert isinstance(groups, list)
 
     def test_fit_with_custom_embeddings(self, sample_docs):
         """Test fitting with custom embeddings."""
@@ -131,8 +103,7 @@ class TestSemanticNetwork:
 
         network = SemanticNetwork(verbose=False)
 
-        # Should not call SentenceTransformer when custom embeddings provided
-        result = network.fit(sample_docs, embeddings=custom_embeddings)
+        result = network.fit(custom_embeddings, labels=sample_docs)
 
         assert result is network
         assert network.is_fitted_ is True
@@ -149,7 +120,7 @@ class TestSemanticNetwork:
 
         # Test fit_transform with custom embeddings
         representatives = network.fit_transform(
-            sample_docs, embeddings=custom_embeddings
+            custom_embeddings, labels=sample_docs
         )
 
         assert isinstance(representatives, list)
@@ -163,8 +134,8 @@ class TestSemanticNetwork:
         wrong_embeddings = np.random.rand(len(sample_docs) - 1, 128)
 
         network = SemanticNetwork()
-        with pytest.raises(ValueError, match="Embeddings shape.*must match X length"):
-            network.fit(sample_docs, embeddings=wrong_embeddings)
+        with pytest.raises(ValueError, match="Labels length.*must match embeddings length"):
+            network.fit(wrong_embeddings, labels=sample_docs)
 
     def test_fit_with_blocks_1d(self, sample_docs):
         """Test fitting with 1D blocks."""
@@ -174,7 +145,7 @@ class TestSemanticNetwork:
 
         network = SemanticNetwork(verbose=False, thresh=0.5)
 
-        result = network.fit(sample_docs, embeddings=custom_embeddings, blocks=blocks)
+        result = network.fit(custom_embeddings, labels=sample_docs, blocks=blocks)
 
         assert result is network
         assert network.is_fitted_ is True
@@ -197,20 +168,20 @@ class TestSemanticNetwork:
 
         network = SemanticNetwork(verbose=False, thresh=0.5)
 
-        result = network.fit(sample_docs, embeddings=custom_embeddings, blocks=blocks)
+        result = network.fit(custom_embeddings, labels=sample_docs, blocks=blocks)
 
         assert result is network
         assert network.is_fitted_ is True
         assert network.blocks_ is not None
         assert network.blocks_.shape == (len(sample_docs), 2)
 
-    def test_fit_blocks_length_mismatch(self, sample_docs):
+    def test_fit_blocks_length_mismatch(self, sample_docs, sample_embeddings):
         """Test fit fails with mismatched blocks length."""
         wrong_blocks = ["A", "B"]  # Wrong length
 
         network = SemanticNetwork()
-        with pytest.raises(ValueError, match="Blocks length.*must match X length"):
-            network.fit(sample_docs, blocks=wrong_blocks)
+        with pytest.raises(ValueError, match="Blocks length.*must match embeddings length"):
+            network.fit(sample_embeddings, labels=sample_docs, blocks=wrong_blocks)
 
     def test_fit_transform_with_blocks(self, sample_docs):
         """Test fit_transform with blocks."""
@@ -220,7 +191,7 @@ class TestSemanticNetwork:
         network = SemanticNetwork(verbose=False, thresh=0.5)
 
         representatives = network.fit_transform(
-            sample_docs, embeddings=custom_embeddings, blocks=blocks
+            custom_embeddings, labels=sample_docs, blocks=blocks
         )
 
         assert isinstance(representatives, list)
@@ -246,7 +217,7 @@ class TestSemanticNetwork:
 
         # Test without blocks
         network_no_blocks = SemanticNetwork(verbose=False, thresh=0.8)
-        network_no_blocks.fit(sample_docs, embeddings=similar_embeddings)
+        network_no_blocks.fit(similar_embeddings, labels=sample_docs)
         stats_no_blocks = network_no_blocks.get_deduplication_stats()
 
         # Test with blocks that separate documents
@@ -254,9 +225,7 @@ class TestSemanticNetwork:
             f"Block{i}" for i in range(len(sample_docs))
         ]  # Each doc in its own block
         network_with_blocks = SemanticNetwork(verbose=False, thresh=0.8)
-        network_with_blocks.fit(
-            sample_docs, embeddings=similar_embeddings, blocks=blocks
-        )
+        network_with_blocks.fit(similar_embeddings, labels=sample_docs, blocks=blocks)
         stats_with_blocks = network_with_blocks.get_deduplication_stats()
 
         # With blocks, there should be no similarities found (each doc in separate block)
@@ -265,21 +234,109 @@ class TestSemanticNetwork:
         assert stats_no_blocks["similarity_pairs"] > 0
 
 
+def test_fit_with_custom_ids():
+    """Test fitting with custom IDs."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+    custom_ids = ["id_a", "id_b", "id_c"]
+    
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs, ids=custom_ids)
+    
+    assert network.is_fitted_ is True
+    # Check that IDs are stored in graph nodes
+    for i, node_id in enumerate(custom_ids):
+        assert network.graph_.nodes[i]["id"] == node_id
+
+
+def test_fit_with_node_data():
+    """Test fitting with additional node data."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+    node_data = {
+        "category": ["cat1", "cat2", "cat1"], 
+        "score": [0.8, 0.9, 0.7]
+    }
+    
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings, labels=docs, node_data=node_data)
+    
+    assert network.is_fitted_ is True
+    # Check that node data is stored in graph nodes
+    for i in range(3):
+        assert network.graph_.nodes[i]["category"] == node_data["category"][i]
+        assert network.graph_.nodes[i]["score"] == node_data["score"][i]
+
+
+def test_fit_node_data_length_mismatch():
+    """Test fit fails with mismatched node_data length."""
+    docs = ["doc1", "doc2", "doc3"]
+    embeddings = np.random.rand(3, 128)
+    wrong_node_data = {"category": ["cat1", "cat2"]}  # Wrong length
+    
+    network = SemanticNetwork()
+    with pytest.raises(ValueError, match="Node data 'category' length.*must match embeddings length"):
+        network.fit(embeddings, labels=docs, node_data=wrong_node_data)
+
+
+def test_fit_labels_length_mismatch():
+    """Test fit fails with mismatched labels length."""
+    embeddings = np.random.rand(3, 128)
+    wrong_labels = ["doc1", "doc2"]  # Wrong length
+    
+    network = SemanticNetwork()
+    with pytest.raises(ValueError, match="Labels length.*must match embeddings length"):
+        network.fit(embeddings, labels=wrong_labels)
+
+
+def test_fit_ids_length_mismatch():
+    """Test fit fails with mismatched IDs length."""
+    embeddings = np.random.rand(3, 128)
+    wrong_ids = ["id1", "id2"]  # Wrong length
+    
+    network = SemanticNetwork()
+    with pytest.raises(ValueError, match="IDs length.*must match embeddings length"):
+        network.fit(embeddings, ids=wrong_ids)
+
+
+def test_fit_with_defaults():
+    """Test fitting with only embeddings (all other params default)."""
+    embeddings = np.random.rand(3, 128)
+    
+    network = SemanticNetwork(verbose=False)
+    network.fit(embeddings)
+    
+    assert network.is_fitted_ is True
+    # Check that default labels are string indices
+    assert network._labels == ["0", "1", "2"]
+    # Check that default IDs are integer indices  
+    assert network._ids == [0, 1, 2]
+    # Check graph has correct node names
+    for i in range(3):
+        assert network.graph_.nodes[i]["name"] == str(i)
+
+
 @pytest.mark.slow
 def test_real_model_integration():
-    """Test with a real sentence transformer model (slower)."""
+    """Test with real embeddings from sentence-transformers (slower)."""
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError:
+        pytest.skip("sentence-transformers not available for integration test")
+
     docs = [
         "The cat sat on the mat",
         "A cat was sitting on a mat",
         "The dog ran quickly",
     ]
 
-    # Use a small, fast model for testing
-    network = SemanticNetwork(
-        embedding_model="all-MiniLM-L6-v2", verbose=False, thresh=0.8
-    )
+    # Generate embeddings using sentence-transformers
+    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+    embeddings = embedding_model.encode(docs)
 
-    representatives = network.fit_transform(docs)
+    # Use semnet without embedding generation
+    network = SemanticNetwork(verbose=False, thresh=0.8)
+    representatives = network.fit_transform(embeddings, labels=docs)
 
     # Basic sanity checks
     assert len(representatives) <= len(docs)

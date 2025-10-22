@@ -2,8 +2,9 @@
 """
 Example of using Semnet with custom embeddings.
 
-This example shows how to use pre-computed embeddings instead of
-generating them with sentence transformers.
+This example demonstrates how to provide your own pre-computed embeddings
+to Semnet instead of using the built-in embedding generation.
+You can use any embedding method: OpenAI, Cohere, HuggingFace, etc.
 """
 
 import numpy as np
@@ -60,7 +61,7 @@ def main():
 
     # Fit using custom embeddings
     representatives = network.fit_transform(
-        documents, embeddings=custom_embeddings, return_representatives=True
+        custom_embeddings, labels=documents, return_representatives=True
     )
 
     print()

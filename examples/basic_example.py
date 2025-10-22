@@ -3,10 +3,13 @@
 Basic example of using Semnet for document deduplication.
 
 This example shows how to deduplicate a list of similar documents
-using semantic embeddings and graph clustering.
+using semantic embeddings and graph clustering. Users must provide
+their own embeddings (e.g., from sentence-transformers, OpenAI, etc.)
 """
 
 from semnet import SemanticNetwork
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
 
 def main():
@@ -47,18 +50,26 @@ def main():
     print(f"Input: {len(documents)} documents")
     print()
 
-    # Create semantic network with verbose output
+    # Generate embeddings using sentence-transformers (users can use any embedding method)
+    print("Generating embeddings...")
+    embedding_model = SentenceTransformer(
+        "all-MiniLM-L6-v2"
+    )  # Fast, good quality model
+    embeddings = embedding_model.encode(documents)
+    print(f"Generated embeddings with shape: {embeddings.shape}")
+    print()
+
+    # Create semantic network - no embedding model needed since we provide embeddings
     network = SemanticNetwork(
-        embedding_model="all-MiniLM-L6-v2",  # Fast, good quality model
         verbose=True,  # Show progress bars and detailed info
         n_trees=10,  # Good balance of speed/accuracy
         thresh=0.25,  # Similarity threshold (0.0-1.0)
         top_k=5,  # Max neighbors to check per document
     )
 
-    # Fit the model and get representative documents
+    # Fit the model with provided embeddings and get representative documents
     representatives = network.fit_transform(
-        documents, weights=weights, return_representatives=True
+        embeddings, labels=documents, weights=weights, return_representatives=True
     )
 
     print()

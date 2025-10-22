@@ -5,7 +5,6 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from annoy import AnnoyIndex
-from sentence_transformers import SentenceTransformer
 from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
@@ -18,16 +17,16 @@ class SemanticNetwork:
     A semantic network for document deduplication using embeddings and graph clustering.
 
     This class follows the scikit-learn pattern with fit(), transform(), and fit_transform() methods.
+    Users must provide pre-computed embeddings during the fit process.
 
     The fitting process builds semantic networks from text documents by:
-    1. Creating embeddings using sentence transformers
+    1. Using provided embeddings
     2. Building an approximate nearest neighbor index for fast similarity search
     3. Constructing a graph where edges represent semantic similarity
 
     The transformation process identifies duplicate groups and returns representatives.
 
     Attributes:
-        embedding_model_name: Name/path of sentence transformer model
         metric: Distance metric for Annoy index
         n_trees: Number of trees for Annoy index
         thresh: Similarity threshold for connecting documents
@@ -43,7 +42,6 @@ class SemanticNetwork:
 
     def __init__(
         self,
-        embedding_model: str = "BAAI/bge-base-en-v1.5",
         metric: MetricType = "angular",
         n_trees: int = 10,
         thresh: float = 0.7,
@@ -54,14 +52,12 @@ class SemanticNetwork:
         Initialize the SemanticNetwork.
 
         Args:
-            embedding_model: Name/path of sentence transformer model to use
             metric: Distance metric for Annoy index ('angular', 'euclidean', etc.)
             n_trees: Number of trees for Annoy index (more = better accuracy, slower build)
             thresh: Default similarity threshold for connecting documents (0.0 to 1.0)
             top_k: Default maximum number of neighbors to check per document
             verbose: Whether to show progress bars and detailed logging
         """
-        self.embedding_model_name = embedding_model
         self.metric = metric
         self.n_trees = n_trees
         self.thresh = thresh
@@ -76,69 +72,92 @@ class SemanticNetwork:
         self.neighbor_data_: Optional[pd.DataFrame] = None
 
         # Training data (stored during fit)
-        self._docs: Optional[List[str]] = None
+        self._labels: Optional[List[str]] = None
+        self._ids: Optional[List[Union[str, int]]] = None
+        self._node_data: Optional[Dict] = None
         self._weights: Optional[List[Union[float, int]]] = None
         self.blocks_: Optional[np.ndarray] = None
 
     def fit(
         self,
-        X: List[str],
-        y=None,
+        embeddings: np.ndarray,
+        labels: Optional[List[str]] = None,
+        ids: Optional[List[Union[str, int]]] = None,
+        node_data: Optional[Dict] = None,
         weights: Optional[List[Union[float, int]]] = None,
-        embeddings: Optional[np.ndarray] = None,
         blocks: Optional[Union[List, np.ndarray]] = None,
     ) -> "SemanticNetwork":
         """
         Learn the semantic relationships between documents.
 
-        This method builds embeddings, creates a similarity index, finds pairwise
+        This method uses provided embeddings to create a similarity index, finds pairwise
         similarities, and constructs the semantic graph.
 
         Args:
-            X: List of text documents to learn from
-            y: Ignored, present for API compatibility
+            embeddings: Pre-computed embeddings array with shape (n_docs, embedding_dim).
+                       Must be provided - this class does not generate embeddings.
+            labels: Optional list of text labels/documents for the embeddings.
+                   If not provided, will use string indices as labels.
+            ids: Optional list of custom IDs for the embeddings.
+                If not provided, will use integer indices as IDs.
+            node_data: Optional dictionary containing additional data to attach to nodes.
+                      Keys should be node attributes, values should be lists of same length as embeddings.
             weights: Optional list of weights for document importance.
                     Higher weights = more likely to be chosen as representative.
-                    Must be same length as X if provided.
-            embeddings: Optional pre-computed embeddings array with shape (len(X), embedding_dim).
-                       If provided, document embedding generation will be skipped.
+                    Must be same length as embeddings if provided.
             blocks: Optional blocking variable(s) for documents. Can be:
                    - List/array of strings or ints for single blocking variable
-                   - 2D array for multiple blocking variables (shape: len(X), n_block_vars)
+                   - 2D array for multiple blocking variables (shape: n_docs, n_block_vars)
                    Only documents within the same block(s) will be compared for similarity.
 
         Returns:
             self: Returns the fitted estimator
 
         Raises:
-            ValueError: If weights provided but length doesn't match X
-            ValueError: If embeddings provided but shape doesn't match X
-            ValueError: If blocks provided but length doesn't match X
+            ValueError: If weights provided but length doesn't match embeddings
+            ValueError: If labels provided but length doesn't match embeddings
+            ValueError: If ids provided but length doesn't match embeddings
+            ValueError: If blocks provided but length doesn't match embeddings
+            ValueError: If node_data values don't match embeddings length
         """
-        if weights is not None and len(weights) != len(X):
+        n_docs = embeddings.shape[0]
+
+        if weights is not None and len(weights) != n_docs:
             raise ValueError(
-                f"Weights length ({len(weights)}) must match X length ({len(X)})"
+                f"Weights length ({len(weights)}) must match embeddings length ({n_docs})"
             )
 
-        if embeddings is not None and embeddings.shape[0] != len(X):
+        if labels is not None and len(labels) != n_docs:
             raise ValueError(
-                f"Embeddings shape[0] ({embeddings.shape[0]}) must match X length ({len(X)})"
+                f"Labels length ({len(labels)}) must match embeddings length ({n_docs})"
             )
+
+        if ids is not None and len(ids) != n_docs:
+            raise ValueError(
+                f"IDs length ({len(ids)}) must match embeddings length ({n_docs})"
+            )
+
+        if node_data is not None:
+            for key, values in node_data.items():
+                if len(values) != n_docs:
+                    raise ValueError(
+                        f"Node data '{key}' length ({len(values)}) must match embeddings length ({n_docs})"
+                    )
 
         # Validate and process blocks
         if blocks is not None:
             blocks_array = np.array(blocks)
             if blocks_array.ndim == 1:
-                if len(blocks_array) != len(X):
+                if len(blocks_array) != n_docs:
                     raise ValueError(
-                        f"Blocks length ({len(blocks_array)}) must match X length ({len(X)})"
+                        f"Blocks length ({len(blocks_array)}) must match embeddings length ({n_docs})"
                     )
                 # Reshape to 2D for consistent handling
                 blocks_array = blocks_array.reshape(-1, 1)
             elif blocks_array.ndim == 2:
-                if blocks_array.shape[0] != len(X):
+                if blocks_array.shape[0] != n_docs:
                     raise ValueError(
-                        f"Blocks shape[0] ({blocks_array.shape[0]}) must match X length ({len(X)})"
+                        f"Blocks shape[0] ({blocks_array.shape[0]}) must match embeddings length ({n_docs})"
                     )
             else:
                 raise ValueError("Blocks must be 1D or 2D array")
@@ -152,21 +171,17 @@ class SemanticNetwork:
                 )
 
         # Store training data
-        self._docs = X
-        self._weights = weights  # Store custom embeddings if provided
-        if embeddings is not None:
-            self.embeddings_ = embeddings
-            if self.verbose:
-                logger.info(
-                    f"Using provided embeddings with shape: {self.embeddings_.shape}"
-                )
-
+        self._labels = labels if labels is not None else [str(i) for i in range(n_docs)]
+        self._ids = ids if ids is not None else list(range(n_docs))
+        self._node_data = node_data
+        self._weights = weights
+        self.embeddings_ = embeddings
+        
         if self.verbose:
-            logger.info(f"Fitting SemanticNetwork on {len(X)} documents")
-
-        # Build the semantic network
-        if embeddings is None:
-            self._embed_documents()
+            logger.info(
+                f"Using provided embeddings with shape: {self.embeddings_.shape}"
+            )
+            logger.info(f"Fitting SemanticNetwork on {n_docs} documents")        # Build the semantic network
         self._build_vector_index()
         self._get_pairwise_similarities()
         self._build_graph()
@@ -201,15 +216,15 @@ class SemanticNetwork:
                 "This SemanticNetwork instance is not fitted yet. Call 'fit' first."
             )
 
-        if self._docs is None:
+        if self._labels is None:
             raise ValueError(
                 "No training documents found. This should not happen after fitting."
             )
 
         if X is not None:
-            if X != self._docs:
+            if X != self._labels:
                 raise ValueError(
-                    "Transform X must match the documents used in fit(). "
+                    "Transform X must match the labels used in fit(). "
                     "Use fit_transform() if you want to fit and transform different documents."
                 )
 
@@ -220,19 +235,20 @@ class SemanticNetwork:
             # Return representative documents
             mapped_indices = set(mapping.keys())
             representative_indices = [
-                i for i in range(len(self._docs)) if i not in mapped_indices
+                i for i in range(len(self._labels)) if i not in mapped_indices
             ]
-            return [self._docs[i] for i in representative_indices]
+            return [self._labels[i] for i in representative_indices]
         else:
             # Return the mapping
             return mapping
 
     def fit_transform(
         self,
-        X: List[str],
-        y=None,
+        embeddings: np.ndarray,
+        labels: Optional[List[str]] = None,
+        ids: Optional[List[Union[str, int]]] = None,
+        node_data: Optional[Dict] = None,
         weights: Optional[List[Union[float, int]]] = None,
-        embeddings: Optional[np.ndarray] = None,
         blocks: Optional[Union[List, np.ndarray]] = None,
         return_representatives: bool = True,
     ) -> Union[List[str], Dict[int, int]]:
@@ -240,11 +256,12 @@ class SemanticNetwork:
         Fit the model and transform the documents in one step.
 
         Args:
-            X: List of text documents to process
-            y: Ignored, present for API compatibility
+            embeddings: Pre-computed embeddings array with shape (n_docs, embedding_dim).
+                       Must be provided - this class does not generate embeddings.
+            labels: Optional list of text labels/documents for the embeddings.
+            ids: Optional list of custom IDs for the embeddings.
+            node_data: Optional dictionary containing additional data to attach to nodes.
             weights: Optional list of weights for document importance
-            embeddings: Optional pre-computed embeddings array with shape (len(X), embedding_dim).
-                       If provided, document embedding generation will be skipped.
             blocks: Optional blocking variable(s) for documents. Only documents within
                    the same block(s) will be compared for similarity.
             return_representatives: If True, return list of representative documents.
@@ -253,7 +270,7 @@ class SemanticNetwork:
         Returns:
             Either a list of representative documents or a mapping dictionary
         """
-        return self.fit(X, y, weights, embeddings, blocks).transform(
+        return self.fit(embeddings, labels, ids, node_data, weights, blocks).transform(
             return_representatives=return_representatives
         )
 
@@ -272,14 +289,14 @@ class SemanticNetwork:
                 "This SemanticNetwork instance is not fitted yet. Call 'fit' first."
             )
 
-        if self._docs is None:
+        if self._labels is None:
             raise ValueError(
                 "No training documents found. This should not happen after fitting."
             )
 
         mapping = self._get_deduplication_mapping()
 
-        original_count = len(self._docs)
+        original_count = len(self._labels)
         deduplicated_count = len(self.transform())
         reduction_ratio = (
             (original_count - deduplicated_count) / original_count
@@ -319,7 +336,7 @@ class SemanticNetwork:
         if self.graph_ is None:
             raise ValueError("Graph not found. This should not happen after fitting.")
 
-        if self._docs is None:
+        if self._labels is None:
             raise ValueError(
                 "No training documents found. This should not happen after fitting."
             )
@@ -329,7 +346,7 @@ class SemanticNetwork:
 
         for component in components:
             if len(component) > 1:  # Only include groups with duplicates
-                group_docs = [self._docs[i] for i in sorted(component)]
+                group_docs = [self._labels[i] for i in sorted(component)]
                 groups.append(group_docs)
 
         # Sort by group size (largest first)
@@ -340,46 +357,6 @@ class SemanticNetwork:
 
         return groups
 
-    def _embed_documents(self) -> np.ndarray:
-        """
-        Generate embeddings for all documents using the sentence transformer model.
-
-        Returns:
-            Document embeddings array of shape (n_docs, embedding_dim)
-
-        Note:
-            The embeddings are stored in self.embeddings_ and also returned.
-        """
-        if self._docs is None:
-            raise ValueError("No training documents found. Call fit() first.")
-
-        if self.verbose:
-            logger.info(f"Generating embeddings for {len(self._docs)} documents")
-
-        # If embeddings already exist, return them
-        if self.embeddings_ is not None:
-            if self.verbose:
-                logger.info(
-                    f"Using existing embeddings with shape: {self.embeddings_.shape}"
-                )
-            return self.embeddings_
-
-        if self.verbose:
-            logger.info(f"Generating embeddings for {len(self._docs)} documents")
-
-        # Use model's built-in progress bar if verbose, otherwise disable
-        embedding_model = SentenceTransformer(self.embedding_model_name)
-        self.embeddings_ = embedding_model.encode(
-            self._docs, show_progress_bar=self.verbose
-        )
-        # Free up memory by deleting the model reference
-        del embedding_model
-
-        if self.verbose:
-            logger.info(f"Generated embeddings with shape: {self.embeddings_.shape}")
-
-        return self.embeddings_
-
     def _build_vector_index(self) -> AnnoyIndex:
         """
         Build an Annoy index for fast approximate nearest neighbor search.
@@ -388,14 +365,14 @@ class SemanticNetwork:
             The built Annoy index
 
         Raises:
-            ValueError: If embeddings haven't been generated yet
+            ValueError: If embeddings haven't been provided yet
 
         Note:
             The index is stored in self.index_ and also returned.
         """
         if self.embeddings_ is None:
             raise ValueError(
-                "Embeddings not found. Please run _embed_documents() first."
+                "Embeddings not found. Please provide embeddings in fit() method."
             )
 
         embedding_dim = self.embeddings_.shape[1]
@@ -445,10 +422,10 @@ class SemanticNetwork:
         """
         if self.embeddings_ is None or self.index_ is None:
             raise ValueError(
-                "Embeddings or index not found. Please run _embed_documents() and _build_vector_index() first."
+                "Embeddings or index not found. Please provide embeddings in fit() method and run _build_vector_index() first."
             )
 
-        if self._docs is None:
+        if self._labels is None:
             raise ValueError("No training documents found. Call fit() first.")
 
         if self.verbose:
@@ -465,7 +442,7 @@ class SemanticNetwork:
 
             # Group documents by their block values
             block_groups = {}
-            for idx in range(len(self._docs)):
+            for idx in range(len(self._labels)):
                 # Convert block values to tuple for hashing
                 block_key = tuple(self.blocks_[idx])
                 if block_key not in block_groups:
@@ -500,8 +477,8 @@ class SemanticNetwork:
                                     "source_idx": src,
                                     "target_idx": tgt,
                                     "similarity": similarity,
-                                    "source_name": self._docs[src],
-                                    "target_name": self._docs[tgt],
+                                    "source_name": self._labels[src],
+                                    "target_name": self._labels[tgt],
                                 }
                                 results.append(result_dict)
         else:
@@ -526,8 +503,8 @@ class SemanticNetwork:
                             "source_idx": idx_source,
                             "target_idx": idx_target,
                             "similarity": similarity,
-                            "source_name": self._docs[idx_source],
-                            "target_name": self._docs[idx_target],
+                            "source_name": self._labels[idx_source],
+                            "target_name": self._labels[idx_target],
                         }
                         results.append(result_dict)
 
@@ -563,7 +540,7 @@ class SemanticNetwork:
                 "Neighbor data not found. Please run _get_pairwise_similarities() first."
             )
 
-        if self._docs is None:
+        if self._labels is None:
             raise ValueError("No training documents found. Call fit() first.")
 
         if self.verbose:
@@ -586,17 +563,31 @@ class SemanticNetwork:
         # Create weight mapping
         weight_dict = {}
         if self._weights is not None:
-            weight_dict = dict(zip(range(len(self._docs)), self._weights))
+            weight_dict = dict(zip(range(len(self._labels)), self._weights))
 
-        # Update nodes with names and weights
+        # Update nodes with names, weights, and additional data
         for node in graph.nodes:
-            graph.nodes[node]["name"] = self._docs[node]
+            # Set name from labels
+            graph.nodes[node]["name"] = self._labels[node]
+            # Set weight
             graph.nodes[node]["weight"] = weight_dict.get(node, 1.0)  # Default to 1.0
+            # Set custom ID if provided
+            if self._ids is not None:
+                graph.nodes[node]["id"] = self._ids[node]
+            # Set additional node data if provided
+            if self._node_data is not None:
+                for key, values in self._node_data.items():
+                    graph.nodes[node][key] = values[node]
 
         # Add isolated nodes (documents with no similarities above threshold)
-        for i in range(len(self._docs)):
+        for i in range(len(self._labels)):
             if i not in graph.nodes:
-                graph.add_node(i, name=self._docs[i], weight=weight_dict.get(i, 1.0))
+                graph.add_node(i, name=self._labels[i], weight=weight_dict.get(i, 1.0))
+                if self._ids is not None:
+                    graph.nodes[i]["id"] = self._ids[i]
+                if self._node_data is not None:
+                    for key, values in self._node_data.items():
+                        graph.nodes[i][key] = values[i]
 
         self.graph_ = graph
 
@@ -631,7 +622,7 @@ class SemanticNetwork:
         if self.graph_ is None:
             raise ValueError("Graph not found. Please run _build_graph() first.")
 
-        if self._docs is None:
+        if self._labels is None:
             raise ValueError("No training documents found. Call fit() first.")
 
         components = list(nx.connected_components(self.graph_))
@@ -655,8 +646,7 @@ class SemanticNetwork:
                         mapping[node] = heaviest_node
 
                 if self.verbose and len(component) > 1:
-                    component_docs = [self._docs[i] for i in component]
-                    representative_doc = self._docs[heaviest_node]
+                    representative_doc = self._labels[heaviest_node]
                     logger.info(
                         f"Component of {len(component)} docs represented by: '{representative_doc[:50]}...'"
                     )
