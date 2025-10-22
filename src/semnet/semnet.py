@@ -176,12 +176,14 @@ class SemanticNetwork:
         self._node_data = node_data
         self._weights = weights
         self.embeddings_ = embeddings
-        
+
         if self.verbose:
             logger.info(
                 f"Using provided embeddings with shape: {self.embeddings_.shape}"
             )
-            logger.info(f"Fitting SemanticNetwork on {n_docs} documents")        # Build the semantic network
+            logger.info(
+                f"Fitting SemanticNetwork on {n_docs} documents"
+            )  # Build the semantic network
         self._build_vector_index()
         self._get_pairwise_similarities()
         self._build_graph()
