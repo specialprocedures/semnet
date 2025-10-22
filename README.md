@@ -204,9 +204,9 @@ custom_ids = ["doc_001", "doc_002", "doc_003"]
 
 # Additional metadata for each document
 node_data = {
-    "category": ["tech", "science", "tech"],
-    "priority": [1, 2, 1],
-    "source": ["web", "paper", "blog"]
+    0: {"category": "tech", "priority": 1},
+    1: {"category": "science", "priority": 2}, 
+    2: {"category": "tech", "priority": 1}
 }
 
 # Generate embeddings
@@ -225,6 +225,54 @@ representatives = network.fit_transform(
 for node_id in network.graph_.nodes():
     node = network.graph_.nodes[node_id]
     print(f"ID: {node['id']}, Category: {node['category']}, Priority: {node['priority']}")
+```
+
+### 7. Exporting to Pandas
+
+```python
+from sentence_transformers import SentenceTransformer
+
+docs = ["Document 1", "Document 2", "Document 3"]
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
+# Add some metadata
+node_data = {
+    0: {"author": "Alice", "category": "tech"},
+    1: {"author": "Bob", "category": "science"},
+    2: {"author": "Charlie", "category": "tech"}
+}
+
+network = SemanticNetwork(thresh=0.8)
+network.fit(embeddings, labels=docs, node_data=node_data)
+
+# Export main graph to pandas DataFrames
+nodes_df, edges_df = network.to_pandas()
+
+# Export a subgraph (useful for focused analysis)
+largest_component = max(nx.connected_components(network.graph_), key=len)
+subgraph = network.graph_.subgraph(largest_component)
+sub_nodes_df, sub_edges_df = network.to_pandas(subgraph)
+
+# You can also export any custom NetworkX graph
+custom_graph = nx.Graph()
+custom_graph.add_node(0, name="Custom Node", attr="value")
+custom_nodes_df, custom_edges_df = network.to_pandas(custom_graph)
+
+# Analyze nodes
+print("Nodes DataFrame:")
+print(nodes_df.head())
+print(f"Columns: {list(nodes_df.columns)}")
+
+# Analyze edges (similarities)
+print("\nEdges DataFrame:")
+print(edges_df.head())
+if len(edges_df) > 0:
+    print(f"Average similarity: {edges_df['similarity'].mean():.3f}")
+
+# Use pandas for further analysis
+tech_docs = nodes_df[nodes_df['category'] == 'tech']
+print(f"\nTech documents: {len(tech_docs)}")
 ```
 
 ## Configuration Options
@@ -248,6 +296,7 @@ for node_id in network.graph_.nodes():
   - blocks are optional blocking variables (1D list/array or 2D array for multiple variables)
 - **transform(X=None, return_representatives=True)**: return_representatives controls output format
 - **fit_transform(embeddings, labels=None, ids=None, node_data=None, weights=None, blocks=None, return_representatives=True)**: Combined fit and transform
+- **to_pandas(graph=None)**: Export NetworkX graph to pandas DataFrames. Uses fitted graph by default, or accepts custom graph parameter for subgraphs/custom analysis
 
 ## Performance Tips
 
@@ -277,6 +326,16 @@ Returns a dictionary with:
 ### get_duplicate_groups() method
 
 Returns `List[List[str]]` - List of groups, where each group contains similar documents
+
+### to_pandas() method
+
+Returns `Tuple[pd.DataFrame, pd.DataFrame]` - A tuple containing:
+- **nodes**: DataFrame with node attributes (index=node_id, columns include all node attributes from the graph)
+- **edges**: DataFrame with similarity edges (columns include all edge attributes from the graph)
+
+Can be called with:
+- `to_pandas()` - Export the fitted semantic network graph
+- `to_pandas(custom_graph)` - Export any NetworkX graph (useful for subgraphs)
 
 ## Requirements
 
