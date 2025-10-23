@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union, Literal, Tuple
+from typing import Dict, List, Optional, Union, Literal, Tuple, Sequence
 import logging
 
 import networkx as nx
@@ -14,24 +14,18 @@ MetricType = Literal["angular", "euclidean", "manhattan", "hamming", "dot"]
 
 class SemanticNetwork:
     """
-    A semantic network for document deduplication using embeddings and graph clustering.
+    A semantic network builder for creating graphs from document embeddings.
 
-    This class follows the scikit-learn pattern with fit(), transform(), and fit_transform() methods.
+    This class follows the scikit-learn pattern with fit() and transform() methods.
     Users must provide pre-computed embeddings during the fit process.
 
-    The fitting process builds semantic networks from text documents by:
-    1. Using provided embeddings
-    2. Building an approximate nearest neighbor index for fast similarity search
-    3. Constructing a graph where edges represent semantic similarity
-
-    The transformation process identifies duplicate groups and returns representatives.
+    The fitting process builds an approximate nearest neighbor index from embeddings.
+    The transformation process constructs a graph where edges represent semantic similarity.
 
     Key Methods:
-        fit(): Learn semantic relationships from provided embeddings
-        transform(): Apply deduplication to return representatives or mappings
+        fit(): Build the similarity index from provided embeddings
+        transform(): Construct and return a similarity graph
         fit_transform(): Combined fit and transform in one step
-        get_deduplication_stats(): Get detailed statistics about deduplication results
-        get_duplicate_groups(): Get groups of similar documents
         to_pandas(): Export graph structure to pandas DataFrames for analysis
 
     Attributes:
@@ -43,9 +37,6 @@ class SemanticNetwork:
         is_fitted_: Whether the model has been fitted
         embeddings_: Document embeddings array (available after fitting)
         index_: Annoy index for similarity search (available after fitting)
-        graph_: NetworkX graph of document similarities (available after fitting)
-        neighbor_data_: DataFrame of pairwise similarities (available after fitting)
-        blocks_: Block assignments for documents (available after fitting with blocks)
     """
 
     def __init__(
@@ -62,8 +53,8 @@ class SemanticNetwork:
         Args:
             metric: Distance metric for Annoy index ('angular', 'euclidean', etc.)
             n_trees: Number of trees for Annoy index (more = better accuracy, slower build)
-            thresh: Default similarity threshold for connecting documents (0.0 to 1.0)
-            top_k: Default maximum number of neighbors to check per document
+            thresh: Similarity threshold for connecting documents (0.0 to 1.0)
+            top_k: Maximum number of neighbors to check per document
             verbose: Whether to show progress bars and detailed logging
         """
         self.metric = metric
@@ -76,30 +67,24 @@ class SemanticNetwork:
         self.is_fitted_ = False
         self.embeddings_: Optional[np.ndarray] = None
         self.index_: Optional[AnnoyIndex] = None
-        self.graph_: Optional[nx.Graph] = None
-        self.neighbor_data_: Optional[pd.DataFrame] = None
 
         # Training data (stored during fit)
         self._labels: Optional[List[str]] = None
         self._ids: Optional[List[Union[str, int]]] = None
         self._node_data: Optional[Dict] = None
-        self._weights: Optional[List[Union[float, int]]] = None
-        self.blocks_: Optional[np.ndarray] = None
 
     def fit(
         self,
         embeddings: np.ndarray,
         labels: Optional[List[str]] = None,
-        ids: Optional[List[Union[str, int]]] = None,
+        ids: Optional[Sequence[Union[str, int]]] = None,
         node_data: Optional[Dict] = None,
-        weights: Optional[List[Union[float, int]]] = None,
-        blocks: Optional[Union[List, np.ndarray]] = None,
     ) -> "SemanticNetwork":
         """
-        Learn the semantic relationships between documents.
+        Build the similarity index from document embeddings.
 
-        This method uses provided embeddings to create a similarity index, finds pairwise
-        similarities, and constructs the semantic graph.
+        This method uses provided embeddings to create a similarity index for
+        fast nearest neighbor search.
 
         Args:
             embeddings: Pre-computed embeddings array with shape (n_docs, embedding_dim).
@@ -112,30 +97,16 @@ class SemanticNetwork:
                       Format: {node_index: {attribute_name: value, ...}, ...}
                       OR {node_index: single_value, ...} (will be stored as {'value': single_value})
                       Only nodes present in the dictionary will get additional attributes.
-            weights: Optional list of weights for document importance.
-                    Higher weights = more likely to be chosen as representative.
-                    Must be same length as embeddings if provided.
-            blocks: Optional blocking variable(s) for documents. Can be:
-                   - List/array of strings or ints for single blocking variable
-                   - 2D array for multiple blocking variables (shape: n_docs, n_block_vars)
-                   Only documents within the same block(s) will be compared for similarity.
 
         Returns:
             self: Returns the fitted estimator
 
         Raises:
-            ValueError: If weights provided but length doesn't match embeddings
             ValueError: If labels provided but length doesn't match embeddings
             ValueError: If ids provided but length doesn't match embeddings
-            ValueError: If blocks provided but length doesn't match embeddings
             ValueError: If node_data values don't match embeddings length
         """
         n_docs = embeddings.shape[0]
-
-        if weights is not None and len(weights) != n_docs:
-            raise ValueError(
-                f"Weights length ({len(weights)}) must match embeddings length ({n_docs})"
-            )
 
         if labels is not None and len(labels) != n_docs:
             raise ValueError(
@@ -180,49 +151,20 @@ class SemanticNetwork:
                     processed_node_data[k] = {"value": v}
             node_data = processed_node_data
 
-        # Validate and process blocks
-        if blocks is not None:
-            blocks_array = np.array(blocks)
-            if blocks_array.ndim == 1:
-                if len(blocks_array) != n_docs:
-                    raise ValueError(
-                        f"Blocks length ({len(blocks_array)}) must match embeddings length ({n_docs})"
-                    )
-                # Reshape to 2D for consistent handling
-                blocks_array = blocks_array.reshape(-1, 1)
-            elif blocks_array.ndim == 2:
-                if blocks_array.shape[0] != n_docs:
-                    raise ValueError(
-                        f"Blocks shape[0] ({blocks_array.shape[0]}) must match embeddings length ({n_docs})"
-                    )
-            else:
-                raise ValueError("Blocks must be 1D or 2D array")
-
-            self.blocks_ = blocks_array
-            if self.verbose:
-                n_vars = blocks_array.shape[1]
-                n_unique_blocks = len(np.unique(blocks_array.view(np.void), axis=0))
-                logger.info(
-                    f"Using {n_vars} blocking variable(s) with {n_unique_blocks} unique block(s)"
-                )
-
         # Store training data
         self._labels = labels if labels is not None else [str(i) for i in range(n_docs)]
-        self._ids = ids if ids is not None else list(range(n_docs))
+        self._ids = list(ids) if ids is not None else list(range(n_docs))
         self._node_data = node_data
-        self._weights = weights
         self.embeddings_ = embeddings
 
         if self.verbose:
             logger.info(
                 f"Using provided embeddings with shape: {self.embeddings_.shape}"
             )
-            logger.info(
-                f"Fitting SemanticNetwork on {n_docs} documents"
-            )  # Build the semantic network
+            logger.info(f"Fitting SemanticNetwork on {n_docs} documents")
+
+        # Build the vector index
         self._build_vector_index()
-        self._get_pairwise_similarities()
-        self._build_graph()
 
         self.is_fitted_ = True
 
@@ -232,168 +174,115 @@ class SemanticNetwork:
         return self
 
     def transform(
-        self, X: Optional[List[str]] = None, return_representatives: bool = True
-    ) -> Union[List[str], Dict[int, int]]:
+        self, thresh: Optional[float] = None, top_k: Optional[int] = None
+    ) -> nx.Graph:
         """
-        Apply deduplication to documents.
+        Build and return a similarity graph from the fitted embeddings.
 
         Args:
-            X: Optional list of documents to transform. If None, uses the documents from fit().
-            return_representatives: If True, return list of representative documents.
-                                  If False, return mapping dict from document index to representative index.
+            thresh: Optional similarity threshold override for this transform.
+                   If None, uses the threshold from initialization.
+            top_k: Optional max neighbors override for this transform.
+                  If None, uses the top_k from initialization.
 
         Returns:
-            Either a list of representative documents or a mapping dictionary
+            NetworkX graph where nodes represent documents and edges represent
+            similarities above the threshold.
 
         Raises:
             ValueError: If the model hasn't been fitted yet
-            ValueError: If X is provided and doesn't match the fitted documents
         """
         if not self.is_fitted_:
             raise ValueError(
                 "This SemanticNetwork instance is not fitted yet. Call 'fit' first."
             )
 
-        if self._labels is None:
-            raise ValueError(
-                "No training documents found. This should not happen after fitting."
-            )
+        # Use provided thresholds or fall back to instance defaults
+        effective_thresh = thresh if thresh is not None else self.thresh
+        effective_top_k = top_k if top_k is not None else self.top_k
 
-        if X is not None:
-            if X != self._labels:
-                raise ValueError(
-                    "Transform X must match the labels used in fit(). "
-                    "Use fit_transform() if you want to fit and transform different documents."
-                )
+        # Get pairwise similarities
+        neighbor_data = self._get_pairwise_similarities(
+            effective_thresh, effective_top_k
+        )
 
-        # Get deduplication mapping
-        mapping = self._get_deduplication_mapping()
-
-        if return_representatives:
-            # Return representative documents
-            mapped_indices = set(mapping.keys())
-            representative_indices = [
-                i for i in range(len(self._labels)) if i not in mapped_indices
-            ]
-            return [self._labels[i] for i in representative_indices]
-        else:
-            # Return the mapping
-            return mapping
+        # Build and return the graph
+        return self._build_graph(neighbor_data)
 
     def fit_transform(
         self,
         embeddings: np.ndarray,
         labels: Optional[List[str]] = None,
-        ids: Optional[List[Union[str, int]]] = None,
+        ids: Optional[Sequence[Union[str, int]]] = None,
         node_data: Optional[Dict] = None,
-        weights: Optional[List[Union[float, int]]] = None,
-        blocks: Optional[Union[List, np.ndarray]] = None,
-        return_representatives: bool = True,
-    ) -> Union[List[str], Dict[int, int]]:
+        thresh: Optional[float] = None,
+        top_k: Optional[int] = None,
+    ) -> nx.Graph:
         """
-        Fit the model and transform the documents in one step.
+        Fit the model and transform the embeddings in one step.
 
         Args:
             embeddings: Pre-computed embeddings array with shape (n_docs, embedding_dim).
-                       Must be provided - this class does not generate embeddings.
             labels: Optional list of text labels/documents for the embeddings.
             ids: Optional list of custom IDs for the embeddings.
             node_data: Optional dictionary containing additional data to attach to nodes.
-            weights: Optional list of weights for document importance
-            blocks: Optional blocking variable(s) for documents. Only documents within
-                   the same block(s) will be compared for similarity.
-            return_representatives: If True, return list of representative documents.
-                                  If False, return mapping dict.
+            thresh: Optional similarity threshold override for this transform.
+            top_k: Optional max neighbors override for this transform.
 
         Returns:
-            Either a list of representative documents or a mapping dictionary
+            NetworkX graph representing the semantic network
         """
-        return self.fit(embeddings, labels, ids, node_data, weights, blocks).transform(
-            return_representatives=return_representatives
-        )
+        return self.fit(embeddings, labels, ids, node_data).transform(thresh, top_k)
 
-    def get_deduplication_stats(self) -> Dict[str, Union[int, float]]:
+    def to_pandas(
+        self, graph: Optional[nx.Graph] = None
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
-        Get statistics about the deduplication results.
+        Export a NetworkX graph to pandas DataFrames.
+
+        By default, exports the most recently transformed graph. Optionally accepts
+        an arbitrary NetworkX graph (useful for subgraphs or modified graphs).
+
+        Args:
+            graph: Optional NetworkX graph to export. If None, will raise an error
+                  since no graph is stored by default after transform.
 
         Returns:
-            Dictionary containing deduplication statistics
+            Tuple[pd.DataFrame, pd.DataFrame]: A tuple containing:
+                - nodes (pd.DataFrame): Node attributes with index as node ID.
+                  Columns include all node attributes from the graph.
+                - edges (pd.DataFrame): Edge list with columns 'source', 'target',
+                  and any edge attributes (e.g., 'similarity').
 
         Raises:
-            ValueError: If the model hasn't been fitted yet
+            ValueError: If no graph is provided and the model hasn't been fitted yet
+
+        Examples:
+            >>> # Build and export a graph
+            >>> network = SemanticNetwork(thresh=0.8)
+            >>> graph = network.fit_transform(embeddings, labels=docs)
+            >>> nodes, edges = network.to_pandas(graph)
+
+            >>> # Export a subgraph
+            >>> subgraph = graph.subgraph([0, 1, 2])
+            >>> sub_nodes, sub_edges = network.to_pandas(subgraph)
         """
-        if not self.is_fitted_:
+        if graph is None:
             raise ValueError(
-                "This SemanticNetwork instance is not fitted yet. Call 'fit' first."
+                "No graph provided. Call transform() to get a graph, then pass it to to_pandas()."
             )
 
-        if self._labels is None:
-            raise ValueError(
-                "No training documents found. This should not happen after fitting."
-            )
+        # Convert nodes to DataFrame
+        nodes = pd.DataFrame.from_dict(dict(graph.nodes(data=True)), orient="index")
 
-        mapping = self._get_deduplication_mapping()
+        # Convert edges to DataFrame
+        if graph.number_of_edges() > 0:
+            edges = nx.to_pandas_edgelist(graph)
+        else:
+            # Create empty DataFrame with expected columns if no edges
+            edges = pd.DataFrame(columns=["source", "target"])
 
-        original_count = len(self._labels)
-        deduplicated_count = len(self.transform())
-        reduction_ratio = (
-            (original_count - deduplicated_count) / original_count
-            if original_count > 0
-            else 0
-        )
-
-        return {
-            "original_count": original_count,
-            "deduplicated_count": deduplicated_count,
-            "duplicates_found": len(mapping),
-            "reduction_ratio": reduction_ratio,
-            "similarity_pairs": (
-                len(self.neighbor_data_) if self.neighbor_data_ is not None else 0
-            ),
-            "connected_components": (
-                nx.number_connected_components(self.graph_) if self.graph_ else 0
-            ),
-        }
-
-    def get_duplicate_groups(self) -> List[List[str]]:
-        """
-        Get groups of duplicate documents as lists of document text.
-
-        Returns:
-            List of groups, where each group contains the text of similar documents.
-            Groups with only one document (no duplicates) are excluded.
-
-        Raises:
-            ValueError: If the model hasn't been fitted yet
-        """
-        if not self.is_fitted_:
-            raise ValueError(
-                "This SemanticNetwork instance is not fitted yet. Call 'fit' first."
-            )
-
-        if self.graph_ is None:
-            raise ValueError("Graph not found. This should not happen after fitting.")
-
-        if self._labels is None:
-            raise ValueError(
-                "No training documents found. This should not happen after fitting."
-            )
-
-        components = list(nx.connected_components(self.graph_))
-        groups = []
-
-        for component in components:
-            if len(component) > 1:  # Only include groups with duplicates
-                group_docs = [self._labels[i] for i in sorted(component)]
-                groups.append(group_docs)
-
-        # Sort by group size (largest first)
-        groups.sort(key=len, reverse=True)
-
-        if self.verbose:
-            logger.info(f"Found {len(groups)} duplicate groups")
-
-        return groups
+        return nodes, edges
 
     def _build_vector_index(self) -> AnnoyIndex:
         """
@@ -440,23 +329,22 @@ class SemanticNetwork:
 
         return self.index_
 
-    def _get_pairwise_similarities(self) -> pd.DataFrame:
+    def _get_pairwise_similarities(self, thresh: float, top_k: int) -> pd.DataFrame:
         """
         Find pairwise similarities between documents above a threshold.
 
         Uses the Annoy index to efficiently find nearest neighbors for each document,
-        then calculates exact similarities and filters by threshold. If blocks are
-        provided, only compares documents within the same block(s).
+        then calculates exact similarities and filters by threshold.
+
+        Args:
+            thresh: Similarity threshold for including edges
+            top_k: Maximum number of neighbors to check per document
 
         Returns:
-            DataFrame of similarities
+            DataFrame of similarities with columns: source_idx, target_idx, similarity, source_name, target_name
 
         Raises:
             ValueError: If embeddings or index haven't been built yet
-
-        Note:
-            Similarity is calculated as (1 - angular_distance) for angular metric.
-            Results include columns: source_idx, target_idx, similarity, source_name, target_name
         """
         if self.embeddings_ is None or self.index_ is None:
             raise ValueError(
@@ -468,128 +356,73 @@ class SemanticNetwork:
 
         if self.verbose:
             logger.info(
-                f"Finding pairwise similarities with threshold {self.thresh}, checking top {self.top_k} neighbors"
+                f"Finding pairwise similarities with threshold {thresh}, checking top {top_k} neighbors"
             )
 
         results = []
 
-        if self.blocks_ is not None:
-            # Use blocking: only compare documents within the same block(s)
-            if self.verbose:
-                logger.info("Using blocking for similarity search")
-
-            # Group documents by their block values
-            block_groups = {}
-            for idx in range(len(self._labels)):
-                # Convert block values to tuple for hashing
-                block_key = tuple(self.blocks_[idx])
-                if block_key not in block_groups:
-                    block_groups[block_key] = []
-                block_groups[block_key].append(idx)
-
-            if self.verbose:
-                logger.info(f"Created {len(block_groups)} blocks for comparison")
-                iterator = tqdm(block_groups.items(), desc="Processing blocks")
-            else:
-                iterator = block_groups.items()
-
-            for block_key, block_indices in iterator:
-                # Only compare documents within this block
-                for i, idx_source in enumerate(block_indices):
-                    # Calculate similarities with all other documents in the same block
-                    for idx_target in block_indices[i + 1 :]:  # Avoid duplicate pairs
-                        # Calculate cosine similarity directly from embeddings
-                        embedding_source = self.embeddings_[idx_source]
-                        embedding_target = self.embeddings_[idx_target]
-
-                        # Cosine similarity for normalized vectors
-                        similarity = np.dot(embedding_source, embedding_target)
-
-                        if similarity >= self.thresh:
-                            # Add both directions for consistency with non-blocking approach
-                            for src, tgt in [
-                                (idx_source, idx_target),
-                                (idx_target, idx_source),
-                            ]:
-                                result_dict = {
-                                    "source_idx": src,
-                                    "target_idx": tgt,
-                                    "similarity": similarity,
-                                    "source_name": self._labels[src],
-                                    "target_name": self._labels[tgt],
-                                }
-                                results.append(result_dict)
+        if self.verbose:
+            iterator = tqdm(range(len(self.embeddings_)), desc="Finding similarities")
         else:
-            # Original approach: use Annoy index for all documents
-            if self.verbose:
-                iterator = tqdm(
-                    range(len(self.embeddings_)), desc="Finding similarities"
-                )
-            else:
-                iterator = range(len(self.embeddings_))
+            iterator = range(len(self.embeddings_))
 
-            for idx_source in iterator:
-                neighbors = self.index_.get_nns_by_item(
-                    idx_source, self.top_k, include_distances=True
-                )
+        for idx_source in iterator:
+            neighbors = self.index_.get_nns_by_item(
+                idx_source, top_k, include_distances=True
+            )
 
-                for idx_target, dist in zip(*neighbors):
-                    similarity = 1 - dist  # Convert angular distance to similarity
+            for idx_target, dist in zip(*neighbors):
+                similarity = 1 - dist  # Convert angular distance to similarity
 
-                    if idx_source != idx_target and similarity >= self.thresh:
-                        result_dict = {
-                            "source_idx": idx_source,
-                            "target_idx": idx_target,
-                            "similarity": similarity,
-                            "source_name": self._labels[idx_source],
-                            "target_name": self._labels[idx_target],
-                        }
-                        results.append(result_dict)
+                if idx_source != idx_target and similarity >= thresh:
+                    result_dict = {
+                        "source_idx": idx_source,
+                        "target_idx": idx_target,
+                        "similarity": similarity,
+                        "source_name": self._labels[idx_source],
+                        "target_name": self._labels[idx_target],
+                    }
+                    results.append(result_dict)
 
-        self.neighbor_data_ = pd.DataFrame(results)
+        neighbor_data = pd.DataFrame(results)
 
         if self.verbose:
             logger.info(
-                f"Found {len(self.neighbor_data_)} similarity pairs above threshold {self.thresh}"
+                f"Found {len(neighbor_data)} similarity pairs above threshold {thresh}"
             )
 
-        return self.neighbor_data_
+        return neighbor_data
 
-    def _build_graph(self) -> nx.Graph:
+    def _build_graph(self, neighbor_data: pd.DataFrame) -> nx.Graph:
         """
         Build a NetworkX graph from pairwise similarities.
 
         Creates a graph where:
-        - Nodes represent documents (with 'name' and 'weight' attributes)
+        - Nodes represent documents (with 'name' attribute and optional custom attributes)
         - Edges represent similarities above the threshold (with 'similarity' attribute)
+
+        Args:
+            neighbor_data: DataFrame of pairwise similarities
 
         Returns:
             The constructed NetworkX graph
 
         Raises:
-            ValueError: If neighbor data hasn't been computed yet
+            ValueError: If training data hasn't been set
 
         Note:
-            Node weights default to 1.0 if no weights were provided during initialization.
-            The graph is stored in self.graph_ and also returned.
+            The graph includes all documents as nodes, even if they have no similarities above threshold.
         """
-        if self.neighbor_data_ is None:
-            raise ValueError(
-                "Neighbor data not found. Please run _get_pairwise_similarities() first."
-            )
-
         if self._labels is None:
             raise ValueError("No training documents found. Call fit() first.")
 
         if self.verbose:
-            logger.info(
-                f"Building graph from {len(self.neighbor_data_)} similarity edges"
-            )
+            logger.info(f"Building graph from {len(neighbor_data)} similarity edges")
 
         # Create graph from edge list
-        if len(self.neighbor_data_) > 0:
+        if len(neighbor_data) > 0:
             graph = nx.from_pandas_edgelist(
-                self.neighbor_data_,
+                neighbor_data,
                 source="source_idx",
                 target="target_idx",
                 edge_attr="similarity",
@@ -598,36 +431,19 @@ class SemanticNetwork:
             # No similarities found, create empty graph
             graph = nx.Graph()
 
-        # Create weight mapping
-        weight_dict = {}
-        if self._weights is not None:
-            weight_dict = dict(zip(range(len(self._labels)), self._weights))
-
-        # Update nodes with names, weights, and additional data
-        for node in graph.nodes:
-            # Set name from labels
-            graph.nodes[node]["name"] = self._labels[node]
-            # Set weight
-            graph.nodes[node]["weight"] = weight_dict.get(node, 1.0)  # Default to 1.0
-            # Set custom ID if provided
-            if self._ids is not None:
-                graph.nodes[node]["id"] = self._ids[node]
-            # Set additional node data if provided for this specific node
-            if self._node_data is not None and node in self._node_data:
-                for attr_name, attr_value in self._node_data[node].items():
-                    graph.nodes[node][attr_name] = attr_value
-
-        # Add isolated nodes (documents with no similarities above threshold)
+        # Add all nodes with their attributes
         for i in range(len(self._labels)):
-            if i not in graph.nodes:
-                graph.add_node(i, name=self._labels[i], weight=weight_dict.get(i, 1.0))
-                if self._ids is not None:
-                    graph.nodes[i]["id"] = self._ids[i]
-                if self._node_data is not None and i in self._node_data:
-                    for attr_name, attr_value in self._node_data[i].items():
-                        graph.nodes[i][attr_name] = attr_value
+            # Set basic attributes
+            attrs = {
+                "name": self._labels[i],
+                "id": self._ids[i] if self._ids is not None else i,
+            }
 
-        self.graph_ = graph
+            # Add custom node data if provided for this specific node
+            if self._node_data is not None and i in self._node_data:
+                attrs.update(self._node_data[i])
+
+            graph.add_node(i, **attrs)
 
         if self.verbose:
             num_components = nx.number_connected_components(graph)
@@ -636,129 +452,3 @@ class SemanticNetwork:
             )
 
         return graph
-
-    def to_pandas(
-        self, graph: Optional[nx.Graph] = None
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """
-        Export a NetworkX graph to pandas DataFrames.
-
-        By default, exports the fitted semantic network graph. Optionally accepts
-        an arbitrary NetworkX graph (useful for subgraphs or modified graphs).
-
-        Args:
-            graph: Optional NetworkX graph to export. If None (default), uses the
-                  fitted semantic network graph (self.graph_).
-
-        Returns:
-            Tuple[pd.DataFrame, pd.DataFrame]: A tuple containing:
-                - nodes (pd.DataFrame): Node attributes with index as node ID.
-                  Columns include all node attributes from the graph.
-                - edges (pd.DataFrame): Edge list with columns 'source', 'target',
-                  and any edge attributes (e.g., 'similarity').
-
-        Raises:
-            ValueError: If the model hasn't been fitted yet and no graph is provided
-            ValueError: If no graph is available (neither fitted nor provided)
-
-        Examples:
-            >>> # Export the main fitted graph
-            >>> network = SemanticNetwork(thresh=0.8)
-            >>> network.fit(embeddings, labels=docs)
-            >>> nodes, edges = network.to_pandas()
-
-            >>> # Export a subgraph
-            >>> subgraph = network.graph_.subgraph([0, 1, 2])
-            >>> sub_nodes, sub_edges = network.to_pandas(subgraph)
-
-        Note:
-            - When using the default fitted graph, node indices correspond to original document order
-            - When using a custom graph, node indices depend on the provided graph structure
-            - If no edges exist in the graph, edges DataFrame will be empty but valid
-            - All node and edge attributes are preserved in the DataFrames
-        """
-        # Use provided graph or fall back to fitted graph
-        target_graph = graph if graph is not None else self.graph_
-
-        if target_graph is None:
-            if not self.is_fitted_:
-                raise ValueError(
-                    "This SemanticNetwork instance is not fitted yet. Call 'fit' first or provide a graph parameter."
-                )
-            else:
-                raise ValueError(
-                    "No graph found. This should not happen after fitting."
-                )
-
-        # Convert nodes to DataFrame
-        nodes = pd.DataFrame.from_dict(
-            dict(target_graph.nodes(data=True)), orient="index"
-        )
-
-        # Convert edges to DataFrame
-        if target_graph.number_of_edges() > 0:
-            edges = nx.to_pandas_edgelist(target_graph)
-        else:
-            # Create empty DataFrame with expected columns if no edges
-            edges = pd.DataFrame(columns=["source", "target"])
-
-        return nodes, edges
-
-    def _get_deduplication_mapping(self) -> Dict[int, int]:
-        """
-        Get a mapping from document indices to their representative indices.
-
-        For each connected component (group of similar documents), selects the
-        document with the highest weight as the representative. All other documents
-        in the component are mapped to this representative.
-
-        Returns:
-            Dictionary mapping document index -> representative index.
-            Only contains entries for documents that should be deduplicated
-            (i.e., representatives are not included in the mapping).
-
-        Raises:
-            ValueError: If graph hasn't been built yet
-
-        Example:
-            If docs [0, 1, 2] are similar and doc 1 has highest weight,
-            returns {0: 1, 2: 1} (doc 1 is not in the mapping as it's the representative)
-        """
-        if self.graph_ is None:
-            raise ValueError("Graph not found. Please run _build_graph() first.")
-
-        if self._labels is None:
-            raise ValueError("No training documents found. Call fit() first.")
-
-        components = list(nx.connected_components(self.graph_))
-
-        if self.verbose:
-            logger.info(
-                f"Found {len(components)} connected components for deduplication"
-            )
-
-        mapping = {}
-        for component in components:
-            if len(component) > 1:  # Only process components with multiple nodes
-                subgraph = self.graph_.subgraph(component)
-                heaviest_node = max(
-                    subgraph.nodes, key=lambda n: subgraph.nodes[n]["weight"]
-                )
-
-                # Map all other nodes in component to the heaviest node
-                for node in subgraph.nodes:
-                    if node != heaviest_node:
-                        mapping[node] = heaviest_node
-
-                if self.verbose and len(component) > 1:
-                    representative_doc = self._labels[heaviest_node]
-                    logger.info(
-                        f"Component of {len(component)} docs represented by: '{representative_doc[:50]}...'"
-                    )
-
-        if self.verbose:
-            logger.info(
-                f"Created mapping for {len(mapping)} documents to be deduplicated"
-            )
-
-        return mapping

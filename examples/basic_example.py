@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 """
-Basic example of using Semnet for document deduplication.
+Basic example of using Semnet for semantic graph construction.
 
-This example shows how to deduplicate a list of similar documents
-using semantic embeddings and graph clustering. Users must provide
+This example shows how to build semantic networks from document embeddings
+using approximate nearest neighbor search and graph construction. Users must provide
 their own embeddings (e.g., from sentence-transformers, OpenAI, etc.)
 """
 
 from semnet import SemanticNetwork
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import networkx as nx
 
 
 def main():
-    """Run basic deduplication example."""
+    """Run basic semantic graph construction example."""
 
-    # Example documents with some duplicates
+    # Example documents with some semantic relationships
     documents = [
         "The cat sat on the mat",
         "A cat was sitting on a mat",  # Very similar to first
@@ -30,23 +31,7 @@ def main():
         "I love eating pizza",  # Unrelated
     ]
 
-    # Optional: provide weights based on document importance/frequency
-    # Higher weights = more likely to be chosen as representative
-    weights = [
-        2.0,  # "The cat sat on the mat" - prefer this version
-        1.0,  # "A cat was sitting on a mat"
-        0.5,  # "The feline was on the rug" - less preferred
-        1.5,  # "The dog ran in the park"
-        1.0,  # "A dog was running in the park"
-        3.0,  # "Python is a programming language" - highly preferred
-        2.0,  # "Python programming language"
-        1.0,  # "Machine learning with Python"
-        1.0,  # "The weather is nice today"
-        2.0,  # "Today the weather is beautiful" - prefer this version
-        1.0,  # "I love eating pizza"
-    ]
-
-    print("Starting semantic deduplication...")
+    print("Starting semantic graph construction...")
     print(f"Input: {len(documents)} documents")
     print()
 
@@ -67,64 +52,111 @@ def main():
         top_k=5,  # Max neighbors to check per document
     )
 
-    # Fit the model with provided embeddings and get representative documents
-    representatives = network.fit_transform(
-        embeddings, labels=documents, weights=weights, return_representatives=True
-    )
+    # Fit the model with provided embeddings and get the semantic graph
+    print("Building semantic graph...")
+    graph = network.fit_transform(embeddings, labels=documents)
 
     print()
     print("=" * 60)
-    print("DEDUPLICATION RESULTS")
+    print("SEMANTIC GRAPH RESULTS")
     print("=" * 60)
 
-    # Print statistics
-    stats = network.get_deduplication_stats()
-    print(f"Original documents: {stats['original_count']}")
-    print(f"After deduplication: {stats['deduplicated_count']}")
-    print(f"Duplicates removed: {stats['duplicates_found']}")
-    print(f"Reduction ratio: {stats['reduction_ratio']:.1%}")
-    print(f"Similarity pairs found: {stats['similarity_pairs']}")
-    print(f"Connected components: {stats['connected_components']}")
+    # Print basic graph statistics
+    print(f"Graph nodes: {graph.number_of_nodes()}")
+    print(f"Graph edges: {graph.number_of_edges()}")
+    print(f"Connected components: {nx.number_connected_components(graph)}")
+    print(f"Average clustering coefficient: {nx.average_clustering(graph):.3f}")
     print()
 
-    # Show representative documents
-    print("REPRESENTATIVE DOCUMENTS:")
+    # Show sample of nodes with their attributes
+    print("SAMPLE NODES (with attributes):")
     print("-" * 40)
-    for i, doc in enumerate(representatives, 1):
-        print(f"{i:2d}. {doc}")
-    print()
-
-    # Show duplicate groups
-    print("DUPLICATE GROUPS:")
-    print("-" * 40)
-
-    groups = network.get_duplicate_groups()
-    mapping_dict = network.transform(return_representatives=False)
-    for i, group in enumerate(groups, 1):
-        print(f"Group {i} ({len(group)} documents):")
-        for doc in group:
-            # Mark the representative (not in mapping)
-            doc_idx = documents.index(doc)
-            is_representative = (
-                doc_idx not in mapping_dict if isinstance(mapping_dict, dict) else True
-            )
-            marker = "*" if is_representative else " "
-            print(f"  {marker} {doc}")
+    for i, (node, data) in enumerate(list(graph.nodes(data=True))[:5]):
+        print(f"Node {node}: {data['name'][:50]}...")
+        print(f"  Attributes: {dict(data)}")
         print()
 
-    # Show mapping details
-    mapping = network.transform(return_representatives=False)
-    if mapping and isinstance(mapping, dict):
-        print("DEDUPLICATION MAPPING:")
-        print("-" * 40)
-        for duplicate_idx, representative_idx in mapping.items():
-            duplicate_doc = documents[duplicate_idx]
-            representative_doc = documents[representative_idx]
-            print(f"'{duplicate_doc}'")
-            print(f"  -> maps to: '{representative_doc}'")
-            print()
+    # Show edges (similarities) above threshold
+    print("SIMILARITY EDGES:")
+    print("-" * 40)
+    if graph.number_of_edges() > 0:
+        # Sort edges by similarity (highest first)
+        edges_with_sim = [
+            (u, v, data["similarity"]) for u, v, data in graph.edges(data=True)
+        ]
+        edges_with_sim.sort(key=lambda x: x[2], reverse=True)
 
-    print("Deduplication complete!")
+        print(f"Found {len(edges_with_sim)} similarity connections:")
+        for u, v, similarity in edges_with_sim[:10]:  # Show top 10
+            doc1 = graph.nodes[u]["name"]
+            doc2 = graph.nodes[v]["name"]
+            print(f"  {similarity:.3f}: '{doc1[:40]}...' <-> '{doc2[:40]}...'")
+
+        if len(edges_with_sim) > 10:
+            print(f"  ... and {len(edges_with_sim) - 10} more edges")
+    else:
+        print("No similarity edges found above the threshold.")
+    print()
+
+    # Show connected components (groups of similar documents)
+    print("CONNECTED COMPONENTS:")
+    print("-" * 40)
+    components = list(nx.connected_components(graph))
+    components.sort(key=len, reverse=True)  # Largest first
+
+    for i, component in enumerate(components, 1):
+        if len(component) > 1:
+            print(f"Component {i} ({len(component)} documents):")
+            for node in sorted(component):
+                doc = graph.nodes[node]["name"]
+                print(f"  - {doc}")
+            print()
+        else:
+            # Count isolated nodes
+            isolated_count = sum(1 for comp in components if len(comp) == 1)
+            if i == 1:  # Only print this once
+                print(f"Plus {isolated_count} isolated nodes (no similar documents)")
+            break
+
+    # Export to pandas for further analysis
+    print("PANDAS EXPORT EXAMPLE:")
+    print("-" * 40)
+    nodes_df, edges_df = network.to_pandas(graph)
+
+    print("Nodes DataFrame:")
+    print(nodes_df[["name", "id"]].head())
+    print()
+
+    if len(edges_df) > 0:
+        print("Edges DataFrame:")
+        print(edges_df[["source", "target", "similarity"]].head())
+        print(f"\nEdge statistics:")
+        print(f"  Mean similarity: {edges_df['similarity'].mean():.3f}")
+        print(f"  Max similarity: {edges_df['similarity'].max():.3f}")
+        print(f"  Min similarity: {edges_df['similarity'].min():.3f}")
+    else:
+        print("No edges to export.")
+    print()
+
+    # Demonstrate custom thresholds
+    print("CUSTOM THRESHOLD EXAMPLE:")
+    print("-" * 40)
+
+    # Try with a higher threshold
+    high_thresh_graph = network.transform(thresh=0.5)
+    print(f"With threshold 0.5: {high_thresh_graph.number_of_edges()} edges")
+
+    # Try with a lower threshold
+    low_thresh_graph = network.transform(thresh=0.1)
+    print(f"With threshold 0.1: {low_thresh_graph.number_of_edges()} edges")
+    print()
+
+    print("Graph construction complete!")
+    print("\nNext steps:")
+    print("- Analyze the graph with NetworkX algorithms")
+    print("- Export to formats like GraphML, GML, or JSON")
+    print("- Visualize with tools like matplotlib, plotly, or networkx")
+    print("- Use for downstream tasks like clustering, search, or recommendation")
 
 
 if __name__ == "__main__":

@@ -2,12 +2,13 @@
 Example: Exporting Semantic Networks to Pandas
 
 This example demonstrates how to use the to_pandas() method to export
-the semantic network graph structure to pandas DataFrames for further
+semantic network graph structures to pandas DataFrames for further
 analysis and visualization.
 """
 
 import numpy as np
 import pandas as pd
+import networkx as nx
 from semnet import SemanticNetwork
 
 # Create sample documents
@@ -61,37 +62,31 @@ node_data = {
 # Custom document IDs
 custom_ids = [f"doc_{i:03d}" for i in range(len(docs))]
 
-# Document importance weights
-weights = [1.0, 0.8, 1.5, 1.2, 2.0, 1.8, 1.0]
-
 print("=== Semantic Network Pandas Export Example ===\n")
 
-# Create and fit the semantic network
+# Create and build the semantic network
 network = SemanticNetwork(
     thresh=0.85, verbose=True  # High threshold to ensure quality matches
 )
 
-print("Fitting semantic network...")
-network.fit(
+print("Building semantic network...")
+graph = network.fit_transform(
     embeddings=embeddings,
     labels=docs,
     ids=custom_ids,
     node_data=node_data,
-    weights=weights,
 )
 
-# Get basic statistics
-stats = network.get_deduplication_stats()
-print(f"\nDeduplication Statistics:")
-print(f"- Original documents: {stats['original_count']}")
-print(f"- After deduplication: {stats['deduplicated_count']}")
-print(f"- Duplicates found: {stats['duplicates_found']}")
-print(f"- Reduction ratio: {stats['reduction_ratio']:.1%}")
-print(f"- Similarity pairs: {stats['similarity_pairs']}")
+# Get basic graph statistics
+print(f"\nGraph Statistics:")
+print(f"- Nodes: {graph.number_of_nodes()}")
+print(f"- Edges: {graph.number_of_edges()}")
+print(f"- Connected components: {nx.number_connected_components(graph)}")
+print(f"- Density: {nx.density(graph):.3f}")
 
 # Export to pandas DataFrames
 print("\n=== Exporting to Pandas DataFrames ===")
-nodes_df, edges_df = network.to_pandas()
+nodes_df, edges_df = network.to_pandas(graph)
 
 print(f"\nNodes DataFrame shape: {nodes_df.shape}")
 print(f"Columns: {list(nodes_df.columns)}")
@@ -118,15 +113,15 @@ print("\nDocuments by topic:")
 topic_counts = nodes_df["topic"].value_counts()
 print(topic_counts)
 
-# Find highest weighted documents
-print("\nTop 3 documents by weight:")
-top_weighted = nodes_df.nlargest(3, "weight")[["name", "weight", "topic"]]
-print(top_weighted)
-
 # Analyze sentiment distribution
 print("\nSentiment distribution:")
 sentiment_counts = nodes_df["sentiment"].value_counts()
 print(sentiment_counts)
+
+# Find documents by length
+print("\nDocuments by length:")
+length_counts = nodes_df["length"].value_counts()
+print(length_counts)
 
 # Find connected documents (if any edges exist)
 if len(edges_df) > 0:
@@ -139,20 +134,92 @@ if len(edges_df) > 0:
             f"- {source_name[:30]}... ↔ {target_name[:30]}... (sim: {similarity:.3f})"
         )
 
-# Get duplicate groups
-groups = network.get_duplicate_groups()
-if groups:
-    print(f"\n=== Duplicate Groups Found ===")
-    for i, group in enumerate(groups, 1):
-        print(f"\nGroup {i} ({len(group)} documents):")
-        for doc in group:
-            print(f"  - {doc}")
+# Analyze connected components
+components = list(nx.connected_components(graph))
+components.sort(key=len, reverse=True)
+
+if any(len(comp) > 1 for comp in components):
+    print(f"\n=== Connected Components (Similar Document Groups) ===")
+    for i, component in enumerate(components, 1):
+        if len(component) > 1:
+            print(f"\nComponent {i} ({len(component)} documents):")
+            for node in sorted(component):
+                doc_name = graph.nodes[node]["name"]
+                doc_topic = graph.nodes[node]["topic"]
+                print(f"  - {doc_name} (topic: {doc_topic})")
 else:
-    print("\nNo duplicate groups found (all documents are unique)")
+    print("\nNo connected components found (all documents are isolated)")
+
+# Demonstrate filtering and analysis
+print("\n=== Advanced Pandas Analysis ===")
+
+# Filter nodes by topic
+tech_docs = nodes_df[nodes_df["topic"] == "technology"]
+print(f"\nTechnology documents ({len(tech_docs)}):")
+for _, row in tech_docs.iterrows():
+    print(f"  - {row['name']}")
+
+# Create a summary table
+print("\nSummary by topic:")
+summary = (
+    nodes_df.groupby("topic")
+    .agg(
+        {
+            "name": "count",
+            "sentiment": lambda x: x.mode().iloc[0] if not x.empty else "unknown",
+        }
+    )
+    .rename(columns={"name": "doc_count", "sentiment": "common_sentiment"})
+)
+print(summary)
+
+# If edges exist, analyze similarity patterns
+if len(edges_df) > 0:
+    print("\nSimilarity network analysis:")
+
+    # Join edges with node data
+    edges_enriched = edges_df.merge(
+        nodes_df[["topic"]],
+        left_on="source",
+        right_index=True,
+        suffixes=("", "_source"),
+    ).merge(
+        nodes_df[["topic"]],
+        left_on="target",
+        right_index=True,
+        suffixes=("", "_target"),
+    )
+
+    # Check if similarities are within topics or across topics
+    edges_enriched["same_topic"] = (
+        edges_enriched["topic"] == edges_enriched["topic_target"]
+    )
+
+    print(f"  - Within-topic connections: {edges_enriched['same_topic'].sum()}")
+    print(f"  - Cross-topic connections: {(~edges_enriched['same_topic']).sum()}")
+
+# Demonstrate subgraph analysis
+if graph.number_of_edges() > 0:
+    print("\n=== Subgraph Analysis ===")
+
+    # Get largest connected component
+    largest_component = max(nx.connected_components(graph), key=len)
+    subgraph = graph.subgraph(largest_component)
+
+    print(f"Largest connected component:")
+    print(f"  - Nodes: {subgraph.number_of_nodes()}")
+    print(f"  - Edges: {subgraph.number_of_edges()}")
+
+    # Export subgraph
+    sub_nodes_df, sub_edges_df = network.to_pandas(subgraph)
+    print(f"  - Subgraph nodes DataFrame shape: {sub_nodes_df.shape}")
+    print(f"  - Subgraph edges DataFrame shape: {sub_edges_df.shape}")
 
 print("\n=== Example Complete ===")
 print("\nYou can now use the nodes_df and edges_df DataFrames for:")
 print("- Further analysis with pandas")
-print("- Visualization with matplotlib/seaborn")
+print("- Visualization with matplotlib/seaborn/plotly")
+print("- Network analysis with NetworkX")
 print("- Export to CSV, Excel, or databases")
 print("- Integration with other data science workflows")
+print("- Machine learning on graph features")

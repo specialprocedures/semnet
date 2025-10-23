@@ -1,16 +1,358 @@
-# Semnet: Networks from embeddings
+````markdown
+# Semnet: Semantic Networks from Embeddings
 
-Semnet constructs network structures from embeddings, facilitating graph operations over embedded documents, images and more.
+Semnet constructs semantic network graphs from embeddings, enabling graph-based analysis and operations over embedded documents, images, and more.
+
+Semnet uses [annoy](https://github.com/spotify/annoy) to perform rapid pair-wise distance calculations across all embeddings in the dataset, then constructs NetworkX graphs where edges represent semantic similarity relationships.
 
 ## Overview
 
-Semnet provides semantic deduplication using three key components:
+Semnet provides semantic graph construction using three key components:
 
 1. **User-Provided Embeddings** - Bring your own embeddings from any source (OpenAI, sentence-transformers, etc.)
 2. **Approximate Nearest Neighbor Search** - Efficiently finds similar documents using Annoy indexing
-3. **Graph Clustering** - Builds similarity graphs and finds connected components to group duplicates
+3. **Graph Construction** - Builds similarity graphs with configurable thresholds for network analysis
 
-This design gives you complete flexibility over the embedding generation process while leveraging Semnet's optimized similarity search and clustering.
+This design gives you complete flexibility over the embedding generation process while leveraging Semnet's optimized similarity search and graph construction.
+
+## Quick Start
+
+```python
+from semnet import SemanticNetwork
+from sentence_transformers import SentenceTransformer  # or any embedding provider
+import networkx as nx
+
+# Your documents
+docs = [
+    "The cat sat on the mat",
+    "A cat was sitting on a mat",  # Similar to first
+    "The dog ran in the park", 
+    "Python is great for ML",
+    "Machine learning with Python"  # Similar to fourth
+]
+
+# Generate embeddings (use any embedding method you prefer)
+embedding_model = SentenceTransformer("BAAI/bge-base-en-v1.5")
+embeddings = embedding_model.encode(docs)
+
+# Create and configure semantic network
+network = SemanticNetwork(
+    thresh=0.8,
+    verbose=True
+)
+
+# Build the semantic graph from your embeddings
+graph = network.fit_transform(embeddings, labels=docs)
+
+# Analyze the graph
+print(f"Nodes: {graph.number_of_nodes()}")
+print(f"Edges: {graph.number_of_edges()}")
+print(f"Connected components: {nx.number_connected_components(graph)}")
+
+# Find similar document groups
+for component in nx.connected_components(graph):
+    if len(component) > 1:
+        similar_docs = [graph.nodes[i]['name'] for i in component]
+        print(f"Similar documents: {similar_docs}")
+
+# Export for further analysis
+nodes_df, edges_df = network.to_pandas(graph)
+```
+
+## Features
+
+- **Scikit-learn style API** - Familiar fit/transform interface for ML practitioners
+- **Bring your own embeddings** - Use any embedding source (OpenAI, Cohere, sentence-transformers, etc.)
+- **Configurable similarity thresholds** - Control graph density and connection strength
+- **Fast similarity search** - Uses Annoy for efficient approximate nearest neighbor search
+- **NetworkX integration** - Full compatibility with NetworkX graph algorithms and analysis
+- **Verbose mode** - Progress bars and detailed logging
+- **Pandas export** - Easy integration with data analysis workflows
+
+## Installation
+
+```bash
+pip install semnet
+```
+
+For development:
+
+```bash
+git clone https://github.com/specialprocedures/semnet.git
+cd semnet
+pip install -e ".[dev]"
+```
+
+## Step-by-Step Usage
+
+### 1. Basic Graph Construction
+
+```python
+from semnet import SemanticNetwork
+from sentence_transformers import SentenceTransformer
+
+# Generate embeddings
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(your_documents)
+
+# Create network and build graph
+network = SemanticNetwork(thresh=0.8)
+graph = network.fit_transform(embeddings, labels=your_documents)
+```
+
+### 2. Separate Fit and Transform
+
+```python
+from sentence_transformers import SentenceTransformer
+
+# Generate embeddings
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
+network = SemanticNetwork()
+
+# Fit the model on embeddings
+network.fit(embeddings, labels=docs)
+
+# Transform with different thresholds
+strict_graph = network.transform(thresh=0.9)  # Fewer, stronger connections
+loose_graph = network.transform(thresh=0.5)   # More, weaker connections
+```
+
+### 3. Using Different Embedding Sources
+
+```python
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+# Option 1: Use sentence-transformers
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
+# Option 2: Use OpenAI embeddings (requires openai package)
+# import openai
+# embeddings = openai.Embedding.create(input=docs, model="text-embedding-ada-002")
+
+# Option 3: Use your own pre-computed embeddings
+# custom_embeddings = np.random.rand(len(docs), 384)  # Shape: (n_docs, embedding_dim)
+
+network = SemanticNetwork(thresh=0.8)
+graph = network.fit_transform(embeddings, labels=docs)
+```
+
+### 4. Advanced Node Data and IDs
+
+```python
+from sentence_transformers import SentenceTransformer
+
+docs = ["Document 1", "Document 2", "Document 3"]
+custom_ids = ["doc_001", "doc_002", "doc_003"]
+
+# Additional metadata for each document
+node_data = {
+    0: {"category": "tech", "priority": 1, "author": "Alice"},
+    1: {"category": "science", "priority": 2, "author": "Bob"}, 
+    2: {"category": "tech", "priority": 1, "author": "Charlie"}
+}
+
+# Generate embeddings
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
+network = SemanticNetwork(thresh=0.8)
+graph = network.fit_transform(
+    embeddings, 
+    labels=docs, 
+    ids=custom_ids, 
+    node_data=node_data
+)
+
+# Access additional data through the graph
+for node_id in graph.nodes():
+    node = graph.nodes[node_id]
+    print(f"ID: {node['id']}, Category: {node['category']}, Author: {node['author']}")
+```
+
+### 5. Graph Analysis
+
+```python
+from sentence_transformers import SentenceTransformer
+import networkx as nx
+
+docs = ["Document 1", "Document 2", "Document 3"]
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
+network = SemanticNetwork(thresh=0.8)
+graph = network.fit_transform(embeddings, labels=docs)
+
+# Basic graph metrics
+print(f"Nodes: {graph.number_of_nodes()}")
+print(f"Edges: {graph.number_of_edges()}")
+print(f"Density: {nx.density(graph):.3f}")
+print(f"Connected components: {nx.number_connected_components(graph)}")
+
+# Find connected components (similar document groups)
+for component in nx.connected_components(graph):
+    if len(component) > 1:
+        docs_in_component = [graph.nodes[i]['name'] for i in component]
+        print(f"Similar documents: {docs_in_component}")
+
+# Node centrality measures
+centrality = nx.degree_centrality(graph)
+most_central = max(centrality, key=centrality.get)
+print(f"Most central document: {graph.nodes[most_central]['name']}")
+
+# Clustering coefficient
+clustering = nx.clustering(graph)
+avg_clustering = sum(clustering.values()) / len(clustering)
+print(f"Average clustering coefficient: {avg_clustering:.3f}")
+```
+
+### 6. Exporting to Pandas
+
+```python
+from sentence_transformers import SentenceTransformer
+
+docs = ["Document 1", "Document 2", "Document 3"]
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = embedding_model.encode(docs)
+
+# Add some metadata
+node_data = {
+    0: {"author": "Alice", "category": "tech"},
+    1: {"author": "Bob", "category": "science"},
+    2: {"author": "Charlie", "category": "tech"}
+}
+
+network = SemanticNetwork(thresh=0.8)
+graph = network.fit_transform(embeddings, labels=docs, node_data=node_data)
+
+# Export main graph to pandas DataFrames
+nodes_df, edges_df = network.to_pandas(graph)
+
+# Export a subgraph (useful for focused analysis)
+largest_component = max(nx.connected_components(graph), key=len)
+subgraph = graph.subgraph(largest_component)
+sub_nodes_df, sub_edges_df = network.to_pandas(subgraph)
+
+# Analyze nodes
+print("Nodes DataFrame:")
+print(nodes_df.head())
+print(f"Columns: {list(nodes_df.columns)}")
+
+# Analyze edges (similarities)
+print("\nEdges DataFrame:")
+print(edges_df.head())
+if len(edges_df) > 0:
+    print(f"Average similarity: {edges_df['similarity'].mean():.3f}")
+
+# Use pandas for further analysis
+tech_docs = nodes_df[nodes_df['category'] == 'tech']
+print(f"\nTech documents: {len(tech_docs)}")
+```
+
+## Configuration Options
+
+### SemanticNetwork Parameters
+
+- **metric**: Distance metric for Annoy index ('angular', 'euclidean', etc.) (default: 'angular')
+- **n_trees**: Number of trees for Annoy index (more = better accuracy, slower) (default: 10)
+- **thresh**: Similarity threshold (0.0 to 1.0) (default: 0.7)
+- **top_k**: Maximum neighbors to check per document (default: 100)
+- **verbose**: Show progress bars and logging (default: False)
+
+### Method Parameters
+
+- **fit(embeddings, labels=None, ids=None, node_data=None)**: 
+  - embeddings are required pre-computed embeddings array with shape (n_docs, embedding_dim)
+  - labels are optional text labels/documents for the embeddings
+  - ids are optional custom IDs for the embeddings  
+  - node_data is optional dictionary containing additional data to attach to nodes
+- **transform(thresh=None, top_k=None)**: Optional threshold and top_k overrides
+- **fit_transform(embeddings, labels=None, ids=None, node_data=None, thresh=None, top_k=None)**: Combined fit and transform
+- **to_pandas(graph)**: Export NetworkX graph to pandas DataFrames
+
+## Performance Tips
+
+- Use `"angular"` metric for cosine similarity (default and recommended)
+- Increase `n_trees` for better accuracy (try 50-100 for large datasets)
+- Decrease `top_k` if you have memory constraints
+- Use smaller embedding models for speed: `"all-MiniLM-L6-v2"`
+- Use larger models for accuracy: `"BAAI/bge-large-en-v1.5"`
+
+## Return Values
+
+### transform() and fit_transform() methods
+
+Returns `nx.Graph` - NetworkX graph where:
+- Nodes represent documents with attributes including 'name', 'id', and any custom node_data
+- Edges represent similarities above the threshold with 'similarity' attribute
+
+### to_pandas() method
+
+Returns `Tuple[pd.DataFrame, pd.DataFrame]` - A tuple containing:
+- **nodes**: DataFrame with node attributes (index=node_id, columns include all node attributes)
+- **edges**: DataFrame with similarity edges (columns include 'source', 'target', 'similarity', etc.)
+
+## Common Use Cases
+
+- **Document clustering**: Find groups of similar documents
+- **Content recommendation**: Identify related content based on semantic similarity
+- **Knowledge graph construction**: Build networks of related concepts or entities
+- **Duplicate detection**: Find near-duplicate content (though not the primary focus)
+- **Exploratory data analysis**: Understand relationships in text collections
+- **Search and retrieval**: Build similarity-based search systems
+
+## Requirements
+
+- Python 3.8+
+- networkx
+- annoy
+- numpy
+- pandas
+- tqdm
+
+Optional for examples:
+- sentence-transformers
+
+## Project origin and statement on the use of AI
+
+I love network analysis, and have explored embedding-derived [semantic networks](https://en.wikipedia.org/wiki/Semantic_network) in the past as an alternative approach to representing, clustering and querying news data. 
+
+Whilst using semantic networks for graph analysis on some forthcoming research, I decided to package some of my code for others to use.
+
+I kicked off the project by hand-refactoring my initial code into the class-based structure that forms the core functionality of the current module.
+
+I then used Github Copilot in VSCode to:
+- Bootstrap scaffolding, tests, documentation, examples and typing
+- Refactor the core methods in the style of the scikit-learn API
+- Add additional functionality for convenient analysis of graph structures and to allow the use of custom embeddings.
+
+## Roadmap
+
+Semnet is a relatively simple project focused on core graph construction functionality. Potential future additions:
+- Better examples showcasing network analysis on large corpora
+- Integration with graph visualization tools
+- Performance optimizations for very large datasets
+
+## License
+
+MIT License
+
+## Citation
+
+If you use Semnet in academic work, please cite:
+
+```bibtex
+@software{semnet,
+  title={Semnet: Semantic Networks from Embeddings},
+  author={Ian Goodrich},
+  year={2025},
+  url={https://github.com/specialprocedures/semnet}
+}
+```
+````
 
 ## Quick Start
 
