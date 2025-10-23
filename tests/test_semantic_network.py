@@ -105,22 +105,6 @@ class TestSemanticNetwork:
         ):
             network.fit(wrong_embeddings, labels=sample_docs)
 
-    def test_fit_with_custom_ids(self):
-        """Test fitting with custom IDs."""
-        docs = ["doc1", "doc2", "doc3"]
-        embeddings = np.random.rand(3, 128)
-        custom_ids = ["id_a", "id_b", "id_c"]
-
-        network = SemanticNetwork(verbose=False)
-        network.fit(embeddings, labels=docs, ids=custom_ids)
-
-        assert network.is_fitted_ is True
-        graph = network.transform()
-
-        # Check that IDs are stored in graph nodes
-        for i, node_id in enumerate(custom_ids):
-            assert graph.nodes[i]["id"] == node_id
-
     def test_fit_with_node_data(self):
         """Test fitting with additional node data."""
         docs = ["doc1", "doc2", "doc3"]
@@ -179,17 +163,6 @@ class TestSemanticNetwork:
         ):
             network.fit(embeddings, labels=wrong_labels)
 
-    def test_fit_ids_length_mismatch(self):
-        """Test fit fails with mismatched IDs length."""
-        embeddings = np.random.rand(3, 128)
-        wrong_ids = ["id1", "id2"]  # Wrong length
-
-        network = SemanticNetwork()
-        with pytest.raises(
-            ValueError, match="IDs length.*must match embeddings length"
-        ):
-            network.fit(embeddings, ids=wrong_ids)
-
     def test_fit_with_defaults(self):
         """Test fitting with only embeddings (all other params default)."""
         embeddings = np.random.rand(3, 128)
@@ -201,8 +174,10 @@ class TestSemanticNetwork:
         assert network.is_fitted_ is True
         # Check that default labels are string indices
         assert network._labels == ["0", "1", "2"]
-        # Check that default IDs are integer indices
-        assert network._ids == [0, 1, 2]
+        # Check that default IDs are integer indices (0, 1, 2)
+        assert graph.nodes[0]["id"] == 0
+        assert graph.nodes[1]["id"] == 1
+        assert graph.nodes[2]["id"] == 2
         # Check graph has correct node names
         for i in range(3):
             assert graph.nodes[i]["name"] == str(i)
@@ -253,23 +228,6 @@ class TestSemanticNetwork:
         assert nodes.loc[0, "category"] == "tech"
         assert nodes.loc[1, "priority"] == 2
         assert nodes.loc[2, "category"] == "tech"
-
-    def test_to_pandas_with_custom_ids(self):
-        """Test to_pandas with custom IDs."""
-        docs = ["doc1", "doc2", "doc3"]
-        embeddings = np.random.rand(3, 128)
-        custom_ids = ["id_a", "id_b", "id_c"]
-
-        network = SemanticNetwork(verbose=False)
-        graph = network.fit_transform(embeddings, labels=docs, ids=custom_ids)
-
-        nodes, edges = network.to_pandas(graph)
-
-        # Check that custom IDs are included
-        assert "id" in nodes.columns
-        assert nodes.loc[0, "id"] == "id_a"
-        assert nodes.loc[1, "id"] == "id_b"
-        assert nodes.loc[2, "id"] == "id_c"
 
     def test_to_pandas_with_similarities(self):
         """Test to_pandas with forced similarities."""

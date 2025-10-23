@@ -59,9 +59,6 @@ node_data = {
     6: {"topic": "weather", "sentiment": "positive", "length": "short"},
 }
 
-# Custom document IDs
-custom_ids = [f"doc_{i:03d}" for i in range(len(docs))]
-
 print("=== Semantic Network Pandas Export Example ===\n")
 
 # Create and build the semantic network
@@ -73,7 +70,6 @@ print("Building semantic network...")
 graph = network.fit_transform(
     embeddings=embeddings,
     labels=docs,
-    ids=custom_ids,
     node_data=node_data,
 )
 

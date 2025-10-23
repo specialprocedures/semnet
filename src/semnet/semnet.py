@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union, Literal, Tuple, Sequence
+from typing import Dict, List, Optional, Union, Literal, Tuple
 import logging
 
 import networkx as nx
@@ -70,14 +70,12 @@ class SemanticNetwork:
 
         # Training data (stored during fit)
         self._labels: Optional[List[str]] = None
-        self._ids: Optional[List[Union[str, int]]] = None
         self._node_data: Optional[Dict] = None
 
     def fit(
         self,
         embeddings: np.ndarray,
         labels: Optional[List[str]] = None,
-        ids: Optional[Sequence[Union[str, int]]] = None,
         node_data: Optional[Dict] = None,
     ) -> "SemanticNetwork":
         """
@@ -91,8 +89,6 @@ class SemanticNetwork:
                        Must be provided - this class does not generate embeddings.
             labels: Optional list of text labels/documents for the embeddings.
                    If not provided, will use string indices as labels.
-            ids: Optional list of custom IDs for the embeddings.
-                If not provided, will use integer indices as IDs.
             node_data: Optional dictionary containing additional data to attach to nodes.
                       Format: {node_index: {attribute_name: value, ...}, ...}
                       OR {node_index: single_value, ...} (will be stored as {'value': single_value})
@@ -111,11 +107,6 @@ class SemanticNetwork:
         if labels is not None and len(labels) != n_docs:
             raise ValueError(
                 f"Labels length ({len(labels)}) must match embeddings length ({n_docs})"
-            )
-
-        if ids is not None and len(ids) != n_docs:
-            raise ValueError(
-                f"IDs length ({len(ids)}) must match embeddings length ({n_docs})"
             )
 
         if node_data is not None:
@@ -153,7 +144,6 @@ class SemanticNetwork:
 
         # Store training data
         self._labels = labels if labels is not None else [str(i) for i in range(n_docs)]
-        self._ids = list(ids) if ids is not None else list(range(n_docs))
         self._node_data = node_data
         self.embeddings_ = embeddings
 
@@ -213,7 +203,6 @@ class SemanticNetwork:
         self,
         embeddings: np.ndarray,
         labels: Optional[List[str]] = None,
-        ids: Optional[Sequence[Union[str, int]]] = None,
         node_data: Optional[Dict] = None,
         thresh: Optional[float] = None,
         top_k: Optional[int] = None,
@@ -224,7 +213,6 @@ class SemanticNetwork:
         Args:
             embeddings: Pre-computed embeddings array with shape (n_docs, embedding_dim).
             labels: Optional list of text labels/documents for the embeddings.
-            ids: Optional list of custom IDs for the embeddings.
             node_data: Optional dictionary containing additional data to attach to nodes.
             thresh: Optional similarity threshold override for this transform.
             top_k: Optional max neighbors override for this transform.
@@ -232,7 +220,7 @@ class SemanticNetwork:
         Returns:
             NetworkX graph representing the semantic network
         """
-        return self.fit(embeddings, labels, ids, node_data).transform(thresh, top_k)
+        return self.fit(embeddings, labels, node_data).transform(thresh, top_k)
 
     def to_pandas(
         self, graph: Optional[nx.Graph] = None
@@ -436,7 +424,7 @@ class SemanticNetwork:
             # Set basic attributes
             attrs = {
                 "name": self._labels[i],
-                "id": self._ids[i] if self._ids is not None else i,
+                "id": i,
             }
 
             # Add custom node data if provided for this specific node
