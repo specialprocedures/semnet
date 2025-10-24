@@ -406,23 +406,15 @@ class SemanticNetwork:
         Note:
             The graph includes all documents as nodes, even if they have no similarities above threshold.
         """
+
         if self._labels is None:
             raise ValueError("No training documents found. Call fit() first.")
 
         if self.verbose:
             logger.info(f"Building graph from {len(neighbor_data)} similarity edges")
 
-        # Create graph from edge list
-        if len(neighbor_data) > 0:
-            graph = nx.from_pandas_edgelist(
-                neighbor_data,
-                source="source_idx",
-                target="target_idx",
-                edge_attr="weight",
-            )
-        else:
-            # No similarities found, create empty graph
-            graph = nx.Graph()
+        # Instantiate undirected graph
+        G = nx.Graph()
 
         # Add all nodes with their attributes
         for i in range(len(self._labels)):
@@ -436,12 +428,20 @@ class SemanticNetwork:
             if self._node_data is not None and i in self._node_data:
                 attrs.update(self._node_data[i])
 
-            graph.add_node(i, **attrs)
+            G.add_node(i, **attrs)
 
-        if self.verbose:
-            num_components = nx.number_connected_components(graph)
-            logger.info(
-                f"Built graph with {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges, {num_components} components"
+        # Add edges from neighbor data
+        for _, row in neighbor_data.iterrows():
+            G.add_edge(
+                row["source_idx"],
+                row["target_idx"],
+                weight=row["weight"],
             )
 
-        return graph
+        if self.verbose:
+            num_components = nx.number_connected_components(G)
+            logger.info(
+                f"Built graph with {G.number_of_nodes()} nodes, {G.number_of_edges()} edges, {num_components} components"
+            )
+
+        return G
