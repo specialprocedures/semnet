@@ -106,7 +106,9 @@ class SemanticNetwork:
             logger.info(
                 f"Using provided embeddings with shape: {self.embeddings_.shape}"
             )
-            logger.info(f"Fitting SemanticNetwork on {len(embeddings)} documents")
+            logger.info(
+                f"Fitting SemanticNetwork on {len(embeddings)} documents"
+            )
 
         # Build the vector index
         self._build_vector_index()
@@ -160,7 +162,9 @@ class SemanticNetwork:
 
             # Check if all keys are integers (node indices)
             non_integer_keys = [
-                k for k in node_data.keys() if not isinstance(k, (int, np.integer))
+                k
+                for k in node_data.keys()
+                if not isinstance(k, (int, np.integer))
             ]
             if non_integer_keys:
                 raise ValueError(
@@ -187,7 +191,9 @@ class SemanticNetwork:
             node_data = processed_node_data
 
         # Store training data
-        self._labels = labels if labels is not None else [str(i) for i in range(n_docs)]
+        self._labels = (
+            labels if labels is not None else [str(i) for i in range(n_docs)]
+        )
         self._node_data = node_data
 
         # Use provided thresholds or fall back to instance defaults
@@ -266,7 +272,9 @@ class SemanticNetwork:
             )
 
         # Convert nodes to DataFrame
-        nodes = pd.DataFrame.from_dict(dict(graph.nodes(data=True)), orient="index")
+        nodes = pd.DataFrame.from_dict(
+            dict(graph.nodes(data=True)), orient="index"
+        )
 
         # Convert edges to DataFrame
         if graph.number_of_edges() > 0:
@@ -322,7 +330,9 @@ class SemanticNetwork:
 
         return self.index_
 
-    def _get_pairwise_similarities(self, thresh: float, top_k: int) -> pd.DataFrame:
+    def _get_pairwise_similarities(
+        self, thresh: float, top_k: int
+    ) -> pd.DataFrame:
         """
         Find pairwise similarities between documents above a threshold.
 
@@ -355,7 +365,9 @@ class SemanticNetwork:
         results = []
 
         if self.verbose:
-            iterator = tqdm(range(len(self.embeddings_)), desc="Finding similarities")
+            iterator = tqdm(
+                range(len(self.embeddings_)), desc="Finding similarities"
+            )
         else:
             iterator = range(len(self.embeddings_))
 
@@ -411,7 +423,9 @@ class SemanticNetwork:
             raise ValueError("No training documents found. Call fit() first.")
 
         if self.verbose:
-            logger.info(f"Building graph from {len(neighbor_data)} similarity edges")
+            logger.info(
+                f"Building graph from {len(neighbor_data)} similarity edges"
+            )
 
         # Instantiate undirected graph
         G = nx.Graph()
