@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semnet"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
     {name = "Ian Goodrich", email = "ian@igdr.ch"},
 ]
@@ -98,7 +98,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--strict-markers --strict-config --verbose"
+addopts = "--strict-config --verbose"
 
 [tool.mypy]
 python_version = "3.8"
