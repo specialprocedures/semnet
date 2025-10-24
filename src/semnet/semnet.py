@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple
 
 import networkx as nx
 import numpy as np

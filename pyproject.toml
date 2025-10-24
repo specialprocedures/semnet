@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semnet"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
     {name = "Ian Goodrich", email = "ian@igdr.ch"},
 ]
@@ -71,7 +71,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.black]
-line-length = 88
+line-length = 79
 target-version = ['py38']
 include = '\.pyi?$'
 extend-exclude = '''
@@ -91,7 +91,7 @@ extend-exclude = '''
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-line_length = 88
+line_length = 79
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

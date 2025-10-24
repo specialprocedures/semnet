@@ -136,7 +136,8 @@ class TestSemanticNetwork:
         network = SemanticNetwork()
         network.fit(embeddings)
         with pytest.raises(
-            ValueError, match="Node data contains invalid indices.*Indices must be"
+            ValueError,
+            match="Node data contains invalid indices.*Indices must be",
         ):
             network.transform(labels=docs, node_data=wrong_node_data)
 
@@ -219,7 +220,9 @@ class TestSemanticNetwork:
         }
 
         network = SemanticNetwork(verbose=False)
-        graph = network.fit_transform(embeddings, labels=docs, node_data=node_data)
+        graph = network.fit_transform(
+            embeddings, labels=docs, node_data=node_data
+        )
 
         nodes, edges = network.to_pandas(graph)
 
@@ -246,7 +249,9 @@ class TestSemanticNetwork:
         )
 
         # Normalize embeddings for consistent similarity calculation
-        embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+        embeddings = embeddings / np.linalg.norm(
+            embeddings, axis=1, keepdims=True
+        )
 
         network = SemanticNetwork(verbose=False, thresh=0.8)
         graph = network.fit_transform(embeddings, labels=docs)
@@ -269,7 +274,9 @@ class TestSemanticNetwork:
         with pytest.raises(ValueError, match="No graph provided"):
             network.to_pandas()
 
-    def test_transform_with_custom_thresholds(self, sample_docs, sample_embeddings):
+    def test_transform_with_custom_thresholds(
+        self, sample_docs, sample_embeddings
+    ):
         """Test transform with custom threshold and top_k overrides."""
         network = SemanticNetwork(verbose=False, thresh=0.9, top_k=50)
         network.fit(sample_embeddings)
