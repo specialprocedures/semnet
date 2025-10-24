@@ -38,15 +38,11 @@ napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = False
 napoleon_include_private_with_doc = False
 
-# MyST settings
-source_suffix = {
-    ".rst": None,
-    ".md": "myst_parser",
-}
+# MyST settings - let MyST handle .md files automatically
+# source_suffix handled by myst_parser extension
 
 # Auto-doc settings
 autodoc_member_order = "bysource"
-autodoc_default_flags = ["members", "undoc-members", "show-inheritance"]
 
 # Path to the Python modules
 import os

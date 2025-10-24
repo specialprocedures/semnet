@@ -1,0 +1,319 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; semnet 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examples" href="examples.html" />
+    <link rel="prev" title="Quick Start" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            semnet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#semnet.SemanticNetwork"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.metric"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.metric</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.n_trees"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.n_trees</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.thresh"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.thresh</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.top_k"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.top_k</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.verbose"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.verbose</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.is_fitted_"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.is_fitted_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.embeddings_"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.embeddings_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.index_"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.index_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.fit"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.fit_transform"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.fit_transform()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.to_pandas"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.to_pandas()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semnet.SemanticNetwork.transform"><code class="docutils literal notranslate"><span class="pre">SemanticNetwork.transform()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">semnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-semnet">
+<span id="api-reference"></span><h1>API Reference<a class="headerlink" href="#module-semnet" title="Link to this heading"></a></h1>
+<p>Semnet: Semantic Network Deduplication</p>
+<p>A Python package for building semantic networks using embeddings and graph clustering
+to perform intelligent deduplication of text data.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">semnet.</span></span><span class="sig-name descname"><span class="pre">SemanticNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'angular'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'euclidean'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'manhattan'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'hamming'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'dot'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'angular'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trees</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/semnet/semnet.html#SemanticNetwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#semnet.SemanticNetwork" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A semantic network builder for creating graphs from document embeddings.</p>
+<p>This class follows the scikit-learn pattern with fit() and transform() methods.
+Users must provide pre-computed embeddings during the fit process.</p>
+<p>The fitting process builds an approximate nearest neighbor index from embeddings.
+The transformation process constructs a graph where edges represent semantic similarity.</p>
+<dl class="simple">
+<dt>Key Methods:</dt><dd><p>fit(): Build the similarity index from provided embeddings
+transform(): Construct and return a networkx object
+fit_transform(): Combined fit and transform in one step
+to_pandas(): Export graph structure to pandas DataFrames for analysis</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.metric">
+<span class="sig-name descname"><span class="pre">metric</span></span><a class="headerlink" href="#semnet.SemanticNetwork.metric" title="Link to this definition"></a></dt>
+<dd><p>Distance metric for the Annoy index</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.n_trees">
+<span class="sig-name descname"><span class="pre">n_trees</span></span><a class="headerlink" href="#semnet.SemanticNetwork.n_trees" title="Link to this definition"></a></dt>
+<dd><p>Number of trees for the Annoy index</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.thresh">
+<span class="sig-name descname"><span class="pre">thresh</span></span><a class="headerlink" href="#semnet.SemanticNetwork.thresh" title="Link to this definition"></a></dt>
+<dd><p>Similarity threshold for connecting documents</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.top_k">
+<span class="sig-name descname"><span class="pre">top_k</span></span><a class="headerlink" href="#semnet.SemanticNetwork.top_k" title="Link to this definition"></a></dt>
+<dd><p>Maximum neighbors to check per document</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.verbose">
+<span class="sig-name descname"><span class="pre">verbose</span></span><a class="headerlink" href="#semnet.SemanticNetwork.verbose" title="Link to this definition"></a></dt>
+<dd><p>Whether to show progress bars and detailed logging</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.is_fitted_">
+<span class="sig-name descname"><span class="pre">is_fitted_</span></span><a class="headerlink" href="#semnet.SemanticNetwork.is_fitted_" title="Link to this definition"></a></dt>
+<dd><p>Whether the model has been fitted</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.embeddings_">
+<span class="sig-name descname"><span class="pre">embeddings_</span></span><a class="headerlink" href="#semnet.SemanticNetwork.embeddings_" title="Link to this definition"></a></dt>
+<dd><p>Document embeddings array (available after fitting)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.index_">
+<span class="sig-name descname"><span class="pre">index_</span></span><a class="headerlink" href="#semnet.SemanticNetwork.index_" title="Link to this definition"></a></dt>
+<dd><p>Annoy index for similarity search (available after fitting)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">embeddings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#semnet.SemanticNetwork" title="semnet.semnet.SemanticNetwork"><span class="pre">SemanticNetwork</span></a></span></span><a class="reference internal" href="_modules/semnet/semnet.html#SemanticNetwork.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#semnet.SemanticNetwork.fit" title="Link to this definition"></a></dt>
+<dd><p>Build the index from document embeddings.</p>
+<p>This method uses provided embeddings to create an Annoy index for
+fast nearest neighbor search.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>embeddings</strong> – Pre-computed embeddings array with shape (n_docs, embedding_dim).</p></li>
+<li><p><strong>labels</strong> – Optional list of text labels/documents for the embeddings.
+If not provided, will use string indices as labels.</p></li>
+<li><p><strong>node_data</strong> – Optional dictionary containing additional data to attach to nodes.
+Format: {node_index: {attribute_name: value, …}, …}
+OR {node_index: single_value, …} (will be stored as {‘value’: single_value})
+Only nodes present in the dictionary will get additional attributes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns the fitted estimator</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>self</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If labels provided but length doesn’t match embeddings</p></li>
+<li><p><strong>ValueError</strong> – If ids provided but length doesn’t match embeddings</p></li>
+<li><p><strong>ValueError</strong> – If node_data values don’t match embeddings length</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.fit_transform">
+<span class="sig-name descname"><span class="pre">fit_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">embeddings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Graph</span></span></span><a class="reference internal" href="_modules/semnet/semnet.html#SemanticNetwork.fit_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#semnet.SemanticNetwork.fit_transform" title="Link to this definition"></a></dt>
+<dd><p>Fit the model and transform the embeddings in one step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>embeddings</strong> – Pre-computed embeddings array with shape (n_docs, embedding_dim).</p></li>
+<li><p><strong>labels</strong> – Optional list of text labels/documents for the embeddings.</p></li>
+<li><p><strong>node_data</strong> – Optional dictionary containing additional data to attach to nodes.</p></li>
+<li><p><strong>thresh</strong> – Optional similarity threshold override for this transform.</p></li>
+<li><p><strong>top_k</strong> – Optional max neighbors override for this transform.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NetworkX graph representing the semantic network</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.to_pandas">
+<span class="sig-name descname"><span class="pre">to_pandas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/semnet/semnet.html#SemanticNetwork.to_pandas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#semnet.SemanticNetwork.to_pandas" title="Link to this definition"></a></dt>
+<dd><p>Export a NetworkX graph to pandas DataFrames.</p>
+<p>By default, exports the most recently transformed graph. Optionally accepts
+an arbitrary NetworkX graph (useful for subgraphs or modified graphs).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>graph</strong> – Optional NetworkX graph to export. If None, will raise an error
+since no graph is stored by default after transform.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>nodes (pd.DataFrame): Node attributes with index as node ID.
+Columns include all node attributes from the graph.</p></li>
+<li><p>edges (pd.DataFrame): Edge list with columns ‘source’, ‘target’,
+and any edge attributes (e.g., ‘weight’).</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[pd.DataFrame, pd.DataFrame]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If no graph is provided and the model hasn’t been fitted yet</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Build and export a graph</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">network</span> <span class="o">=</span> <span class="n">SemanticNetwork</span><span class="p">(</span><span class="n">thresh</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">graph</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">docs</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nodes</span><span class="p">,</span> <span class="n">edges</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Export a subgraph</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subgraph</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">subgraph</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sub_nodes</span><span class="p">,</span> <span class="n">sub_edges</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="semnet.SemanticNetwork.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Graph</span></span></span><a class="reference internal" href="_modules/semnet/semnet.html#SemanticNetwork.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#semnet.SemanticNetwork.transform" title="Link to this definition"></a></dt>
+<dd><p>Build and return a weighted graph from the fitted embeddings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thresh</strong> – The similarity threshold for edge inclusion.
+If None, uses the threshold from initialization.</p></li>
+<li><p><strong>top_k</strong> – Optional max neighbors override for this transform.
+If None, uses the top_k from initialization.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NetworkX graph where nodes represent documents and edges represent
+similarities above the threshold.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If the model hasn’t been fitted yet</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
