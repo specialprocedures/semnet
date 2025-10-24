@@ -5,3 +5,6 @@ src/semnet/__pycache__
 .venv
 .vscode
 tests/__pycache__
+.env
+build
+scripts/build_and_publish.py
