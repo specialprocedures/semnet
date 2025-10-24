@@ -43,7 +43,15 @@ napoleon_include_private_with_doc = False
 
 # Auto-doc settings
 autodoc_member_order = "bysource"
-autodoc_mock_imports = ["annoy"]  # Mock C extension that might cause issues on RTD
+# Mock all external dependencies since we only need the API structure
+autodoc_mock_imports = [
+    "annoy", 
+    "networkx", 
+    "numpy", 
+    "pandas", 
+    "tqdm",
+    "sklearn"  # In case it's referenced anywhere
+]
 
 # Path to the Python modules
 import os
