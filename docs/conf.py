@@ -45,12 +45,11 @@ napoleon_include_private_with_doc = False
 autodoc_member_order = "bysource"
 # Mock all external dependencies since we only need the API structure
 autodoc_mock_imports = [
-    "annoy", 
-    "networkx", 
-    "numpy", 
-    "pandas", 
+    "annoy",
+    "networkx",
+    "numpy",
+    "pandas",
     "tqdm",
-    "sklearn"  # In case it's referenced anywhere
 ]
 
 # Path to the Python modules
