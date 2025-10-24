@@ -24,13 +24,13 @@ class SemanticNetwork:
 
     Key Methods:
         fit(): Build the similarity index from provided embeddings
-        transform(): Construct and return a similarity graph
+        transform(): Construct and return a networkx object
         fit_transform(): Combined fit and transform in one step
         to_pandas(): Export graph structure to pandas DataFrames for analysis
 
     Attributes:
-        metric: Distance metric for Annoy index
-        n_trees: Number of trees for Annoy index
+        metric: Distance metric for the Annoy index
+        n_trees: Number of trees for the Annoy index
         thresh: Similarity threshold for connecting documents
         top_k: Maximum neighbors to check per document
         verbose: Whether to show progress bars and detailed logging
@@ -75,18 +75,15 @@ class SemanticNetwork:
     def fit(
         self,
         embeddings: np.ndarray,
-        labels: Optional[List[str]] = None,
-        node_data: Optional[Dict] = None,
     ) -> "SemanticNetwork":
         """
-        Build the similarity index from document embeddings.
+        Build the index from document embeddings.
 
-        This method uses provided embeddings to create a similarity index for
+        This method uses provided embeddings to create an Annoy index for
         fast nearest neighbor search.
 
         Args:
             embeddings: Pre-computed embeddings array with shape (n_docs, embedding_dim).
-                       Must be provided - this class does not generate embeddings.
             labels: Optional list of text labels/documents for the embeddings.
                    If not provided, will use string indices as labels.
             node_data: Optional dictionary containing additional data to attach to nodes.
@@ -102,7 +99,54 @@ class SemanticNetwork:
             ValueError: If ids provided but length doesn't match embeddings
             ValueError: If node_data values don't match embeddings length
         """
-        n_docs = embeddings.shape[0]
+
+        self.embeddings_ = embeddings
+
+        if self.verbose:
+            logger.info(
+                f"Using provided embeddings with shape: {self.embeddings_.shape}"
+            )
+            logger.info(f"Fitting SemanticNetwork on {len(embeddings)} documents")
+
+        # Build the vector index
+        self._build_vector_index()
+
+        self.is_fitted_ = True
+
+        if self.verbose:
+            logger.info("Fitting complete")
+
+        return self
+
+    def transform(
+        self,
+        thresh: Optional[float] = None,
+        top_k: Optional[int] = None,
+        labels: Optional[List[str]] = None,
+        node_data: Optional[Dict] = None,
+    ) -> nx.Graph:
+        """
+        Build and return a weighted graph from the fitted embeddings.
+
+        Args:
+            thresh: The similarity threshold for edge inclusion.
+                   If None, uses the threshold from initialization.
+            top_k: Optional max neighbors override for this transform.
+                  If None, uses the top_k from initialization.
+
+        Returns:
+            NetworkX graph where nodes represent documents and edges represent
+            similarities above the threshold.
+
+        Raises:
+            ValueError: If the model hasn't been fitted yet
+        """
+        if not self.is_fitted_:
+            raise ValueError(
+                "This SemanticNetwork instance is not fitted yet. Call 'fit' first."
+            )
+
+        n_docs = self.embeddings_.shape[0]
 
         if labels is not None and len(labels) != n_docs:
             raise ValueError(
@@ -145,47 +189,6 @@ class SemanticNetwork:
         # Store training data
         self._labels = labels if labels is not None else [str(i) for i in range(n_docs)]
         self._node_data = node_data
-        self.embeddings_ = embeddings
-
-        if self.verbose:
-            logger.info(
-                f"Using provided embeddings with shape: {self.embeddings_.shape}"
-            )
-            logger.info(f"Fitting SemanticNetwork on {n_docs} documents")
-
-        # Build the vector index
-        self._build_vector_index()
-
-        self.is_fitted_ = True
-
-        if self.verbose:
-            logger.info("Fitting complete")
-
-        return self
-
-    def transform(
-        self, thresh: Optional[float] = None, top_k: Optional[int] = None
-    ) -> nx.Graph:
-        """
-        Build and return a similarity graph from the fitted embeddings.
-
-        Args:
-            thresh: Optional similarity threshold override for this transform.
-                   If None, uses the threshold from initialization.
-            top_k: Optional max neighbors override for this transform.
-                  If None, uses the top_k from initialization.
-
-        Returns:
-            NetworkX graph where nodes represent documents and edges represent
-            similarities above the threshold.
-
-        Raises:
-            ValueError: If the model hasn't been fitted yet
-        """
-        if not self.is_fitted_:
-            raise ValueError(
-                "This SemanticNetwork instance is not fitted yet. Call 'fit' first."
-            )
 
         # Use provided thresholds or fall back to instance defaults
         effective_thresh = thresh if thresh is not None else self.thresh
@@ -220,7 +223,9 @@ class SemanticNetwork:
         Returns:
             NetworkX graph representing the semantic network
         """
-        return self.fit(embeddings, labels, node_data).transform(thresh, top_k)
+        return self.fit(embeddings=embeddings).transform(
+            thresh=thresh, top_k=top_k, labels=labels, node_data=node_data
+        )
 
     def to_pandas(
         self, graph: Optional[nx.Graph] = None
@@ -240,7 +245,7 @@ class SemanticNetwork:
                 - nodes (pd.DataFrame): Node attributes with index as node ID.
                   Columns include all node attributes from the graph.
                 - edges (pd.DataFrame): Edge list with columns 'source', 'target',
-                  and any edge attributes (e.g., 'similarity').
+                  and any edge attributes (e.g., 'weight').
 
         Raises:
             ValueError: If no graph is provided and the model hasn't been fitted yet
@@ -329,7 +334,7 @@ class SemanticNetwork:
             top_k: Maximum number of neighbors to check per document
 
         Returns:
-            DataFrame of similarities with columns: source_idx, target_idx, similarity, source_name, target_name
+            DataFrame of similarities with columns: source_idx, target_idx, weight, source_name, target_name
 
         Raises:
             ValueError: If embeddings or index haven't been built yet
@@ -366,7 +371,7 @@ class SemanticNetwork:
                     result_dict = {
                         "source_idx": idx_source,
                         "target_idx": idx_target,
-                        "similarity": similarity,
+                        "weight": similarity,
                         "source_name": self._labels[idx_source],
                         "target_name": self._labels[idx_target],
                     }
@@ -386,8 +391,8 @@ class SemanticNetwork:
         Build a NetworkX graph from pairwise similarities.
 
         Creates a graph where:
-        - Nodes represent documents (with 'name' attribute and optional custom attributes)
-        - Edges represent similarities above the threshold (with 'similarity' attribute)
+        - Nodes represent documents
+        - Edges represent similarities above the threshold (with 'weight' attribute representing similarity)
 
         Args:
             neighbor_data: DataFrame of pairwise similarities
@@ -413,7 +418,7 @@ class SemanticNetwork:
                 neighbor_data,
                 source="source_idx",
                 target="target_idx",
-                edge_attr="similarity",
+                edge_attr="weight",
             )
         else:
             # No similarities found, create empty graph
@@ -423,7 +428,7 @@ class SemanticNetwork:
         for i in range(len(self._labels)):
             # Set basic attributes
             attrs = {
-                "name": self._labels[i],
+                "label": self._labels[i],
                 "id": i,
             }
 

@@ -48,7 +48,7 @@ class TestSemanticNetwork:
         network = SemanticNetwork(verbose=False)
 
         # Test fit
-        result = network.fit(sample_embeddings, labels=sample_docs)
+        result = network.fit(sample_embeddings)
         assert result is network  # Should return self
         assert network.is_fitted_ is True
         assert network.embeddings_ is not None
@@ -57,10 +57,10 @@ class TestSemanticNetwork:
     def test_transform_basic(self, sample_docs, sample_embeddings):
         """Test basic transform."""
         network = SemanticNetwork(verbose=False)
-        network.fit(sample_embeddings, labels=sample_docs)
+        network.fit(sample_embeddings)
 
         # Test transform
-        graph = network.transform()
+        graph = network.transform(labels=sample_docs)
         assert isinstance(graph, nx.Graph)
         assert graph.number_of_nodes() == len(sample_docs)
 
@@ -86,7 +86,7 @@ class TestSemanticNetwork:
         custom_embeddings = np.random.rand(len(sample_docs), 256)
 
         network = SemanticNetwork(verbose=False)
-        result = network.fit(custom_embeddings, labels=sample_docs)
+        result = network.fit(custom_embeddings)
 
         assert result is network
         assert network.is_fitted_ is True
@@ -95,15 +95,16 @@ class TestSemanticNetwork:
         assert network.embeddings_.shape == (len(sample_docs), 256)
 
     def test_fit_embeddings_shape_mismatch(self, sample_docs):
-        """Test fit fails with mismatched embeddings shape."""
+        """Test transform fails with mismatched embeddings and labels length."""
         # Create embeddings with wrong number of documents
         wrong_embeddings = np.random.rand(len(sample_docs) - 1, 128)
 
         network = SemanticNetwork()
+        network.fit(wrong_embeddings)
         with pytest.raises(
             ValueError, match="Labels length.*must match embeddings length"
         ):
-            network.fit(wrong_embeddings, labels=sample_docs)
+            network.transform(labels=sample_docs)  # This should fail
 
     def test_fit_with_node_data(self):
         """Test fitting with additional node data."""
@@ -116,8 +117,8 @@ class TestSemanticNetwork:
         }
 
         network = SemanticNetwork(verbose=False)
-        network.fit(embeddings, labels=docs, node_data=node_data)
-        graph = network.transform()
+        network.fit(embeddings)
+        graph = network.transform(labels=docs, node_data=node_data)
 
         # Check that node data was stored
         for node in graph.nodes():
@@ -126,42 +127,44 @@ class TestSemanticNetwork:
                     assert graph.nodes[node][attr] == value
 
     def test_fit_node_data_invalid_indices(self):
-        """Test fit fails with invalid node indices in node_data."""
+        """Test transform fails with invalid node indices in node_data."""
         docs = ["doc1", "doc2", "doc3"]
         embeddings = np.random.rand(3, 128)
         # Invalid index (3 is out of bounds for 3 documents)
         wrong_node_data = {3: {"category": "cat1"}}
 
         network = SemanticNetwork()
+        network.fit(embeddings)
         with pytest.raises(
             ValueError, match="Node data contains invalid indices.*Indices must be"
         ):
-            network.fit(embeddings, labels=docs, node_data=wrong_node_data)
+            network.transform(labels=docs, node_data=wrong_node_data)
 
     def test_fit_node_data_single_values(self):
-        """Test fit with single-value node data format."""
+        """Test transform with single-value node data format."""
         docs = ["doc1", "doc2", "doc3"]
         embeddings = np.random.rand(3, 128)
 
         # Test that single values are accepted (converted to {'value': value})
         node_data_single = {0: "some_value", 1: 42}
         network = SemanticNetwork(verbose=False)
-        network.fit(embeddings, labels=docs, node_data=node_data_single)
-        graph = network.transform()
+        network.fit(embeddings)
+        graph = network.transform(labels=docs, node_data=node_data_single)
 
         assert graph.nodes[0]["value"] == "some_value"
         assert graph.nodes[1]["value"] == 42
 
     def test_fit_labels_length_mismatch(self):
-        """Test fit fails with mismatched labels length."""
+        """Test transform fails with mismatched labels length."""
         embeddings = np.random.rand(3, 128)
         wrong_labels = ["doc1", "doc2"]  # Wrong length
 
         network = SemanticNetwork()
+        network.fit(embeddings)
         with pytest.raises(
             ValueError, match="Labels length.*must match embeddings length"
         ):
-            network.fit(embeddings, labels=wrong_labels)
+            network.transform(labels=wrong_labels)
 
     def test_fit_with_defaults(self):
         """Test fitting with only embeddings (all other params default)."""
@@ -178,9 +181,9 @@ class TestSemanticNetwork:
         assert graph.nodes[0]["id"] == 0
         assert graph.nodes[1]["id"] == 1
         assert graph.nodes[2]["id"] == 2
-        # Check graph has correct node names
+        # Check graph has correct node labels
         for i in range(3):
-            assert graph.nodes[i]["name"] == str(i)
+            assert graph.nodes[i]["label"] == str(i)
 
     def test_to_pandas_basic(self):
         """Test basic to_pandas functionality."""
@@ -195,12 +198,12 @@ class TestSemanticNetwork:
         # Check nodes DataFrame
         assert isinstance(nodes, pd.DataFrame)
         assert len(nodes) == 3
-        assert "name" in nodes.columns
+        assert "label" in nodes.columns
         assert "id" in nodes.columns
 
-        # Check that node names match our docs
-        node_names = nodes["name"].tolist()
-        assert set(node_names) == set(docs)
+        # Check that node labels match our docs
+        node_labels = nodes["label"].tolist()
+        assert set(node_labels) == set(docs)
 
         # Check edges DataFrame
         assert isinstance(edges, pd.DataFrame)
@@ -254,10 +257,10 @@ class TestSemanticNetwork:
         if len(edges) > 0:
             assert "source" in edges.columns
             assert "target" in edges.columns
-            assert "similarity" in edges.columns
+            assert "weight" in edges.columns
 
-            # Check that similarities are above threshold
-            assert (edges["similarity"] >= 0.8).all()
+            # Check that weights are above threshold
+            assert (edges["weight"] >= 0.8).all()
 
     def test_to_pandas_no_graph_provided(self):
         """Test to_pandas fails when no graph provided."""
@@ -269,12 +272,14 @@ class TestSemanticNetwork:
     def test_transform_with_custom_thresholds(self, sample_docs, sample_embeddings):
         """Test transform with custom threshold and top_k overrides."""
         network = SemanticNetwork(verbose=False, thresh=0.9, top_k=50)
-        network.fit(sample_embeddings, labels=sample_docs)
+        network.fit(sample_embeddings)
 
         # Transform with different thresholds
-        graph1 = network.transform(thresh=0.1, top_k=10)  # Lower threshold = more edges
+        graph1 = network.transform(
+            thresh=0.1, top_k=10, labels=sample_docs
+        )  # Lower threshold = more edges
         graph2 = network.transform(
-            thresh=0.95, top_k=100
+            thresh=0.95, top_k=100, labels=sample_docs
         )  # Higher threshold = fewer edges
 
         # Both should be valid graphs
