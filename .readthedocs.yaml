@@ -8,7 +8,7 @@ version: 2
 build:
   os: ubuntu-24.04
   tools:
-    python: "3.13"
+    python: "3.11"  # Use 3.11 instead of 3.13 for better RTD compatibility
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
@@ -20,4 +20,6 @@ python:
     - requirements: docs/requirements.txt
     - method: pip
       path: .
+      extra_requirements:
+        - docs
 

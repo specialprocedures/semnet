@@ -43,6 +43,7 @@ napoleon_include_private_with_doc = False
 
 # Auto-doc settings
 autodoc_member_order = "bysource"
+autodoc_mock_imports = ["annoy"]  # Mock C extension that might cause issues on RTD
 
 # Path to the Python modules
 import os
