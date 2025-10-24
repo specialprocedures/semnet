@@ -1,9 +1,9 @@
 """Test suite for SemanticNetwork class."""
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 import pytest
-import networkx as nx
 
 from semnet import SemanticNetwork
 
@@ -289,7 +289,6 @@ class TestSemanticNetwork:
         assert graph2.number_of_nodes() == len(sample_docs)
 
 
-@pytest.mark.slow
 def test_real_model_integration():
     """Test with real embeddings from sentence-transformers (slower)."""
     try:
