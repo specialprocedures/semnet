@@ -30,9 +30,9 @@ import networkx as nx
 docs = [
     "The cat sat on the mat",
     "A cat was sitting on a mat",
-    "The dog ran in the park", 
-    "Python is great for ML",
-    "Machine learning with Python"
+    "The dog ran in the park",
+    "I love Python",
+    "Python is a great programming language",
 ]
 
 # Generate embeddings (use any embedding provider)
@@ -40,10 +40,7 @@ embedding_model = SentenceTransformer("BAAI/bge-base-en-v1.5")
 embeddings = embedding_model.encode(docs)
 
 # Create and configure semantic network
-sem = SemanticNetwork(
-    thresh=0.3, # Larger values give sparser networks
-    verbose=True
-)
+sem = SemanticNetwork(thresh=0.3, verbose=True)  # Larger values give sparser networks
 
 # Build the semantic graph from your embeddings
 G = sem.fit_transform(embeddings, labels=docs)
@@ -56,11 +53,18 @@ print(f"Connected components: {nx.number_connected_components(G)}")
 # Find similar document groups
 for component in nx.connected_components(G):
     if len(component) > 1:
-        similar_docs = [G.nodes[i]['name'] for i in component]
+        similar_docs = [G.nodes[i]["label"] for i in component]
         print(f"Similar documents: {similar_docs}")
 
+# Calculate centrality measures,
+# Degree centrality not that interesting in the example, but shown here for demonstration
+centrality = nx.degree_centrality(G)
+for node, cent_value in centrality.items():
+    print(f"Document: {G.nodes[node]['label']}, Degree Centrality: {cent_value:.4f}")
+    G.nodes[node]["degree_centrality"] = cent_value
+
 # Export to pandas
-nodes_df, edges_df = network.to_pandas(G)
+nodes_df, edges_df = sem.to_pandas(G)
 ```
 
 ## Installation
