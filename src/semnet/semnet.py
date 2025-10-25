@@ -372,14 +372,30 @@ class SemanticNetwork:
             iterator = range(len(self.embeddings_))
 
         for idx_source in iterator:
+            # Dealing with self loops and too large top_k
+
+            # We add one to top_k to account for self-matches, so top_k = 1 will return 1 neighbor + self
+            effective_top_k = top_k + 1
+
+            # In case top_k exceeds number of items, set to -1 to get all items
+            if effective_top_k > len(self.embeddings_):
+                effective_top_k = -1  # Annoy convention for all items
+
             neighbors = self.index_.get_nns_by_item(
-                idx_source, top_k, include_distances=True
+                idx_source, effective_top_k, include_distances=True
+            )
+
+            # Reduce neighbours to exclude self-match
+            neighbors = (
+                np.array(neighbors[0][1:]),
+                np.array(neighbors[1][1:]),
             )
 
             for idx_target, dist in zip(*neighbors):
                 similarity = 1 - dist  # Convert angular distance to similarity
 
-                if idx_source != idx_target and similarity >= thresh:
+                # Only include if above threshold
+                if similarity >= thresh:
                     result_dict = {
                         "source_idx": idx_source,
                         "target_idx": idx_target,
