@@ -12,6 +12,60 @@ logger = logging.getLogger(__name__)
 MetricType = Literal["angular", "euclidean", "manhattan", "hamming", "dot"]
 
 
+def to_pandas(graph: nx.Graph) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Export a NetworkX graph to pandas DataFrames.
+
+    This function operates on any NetworkX graph, making it useful for
+    analyzing graphs from SemanticNetwork or any other NetworkX graph.
+
+    Args:
+        graph: NetworkX graph to export
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame]: A tuple containing:
+            - nodes (pd.DataFrame): Node attributes with index as node ID.
+              Columns include all node attributes from the graph.
+            - edges (pd.DataFrame): Edge list with columns 'source', 'target',
+              and any edge attributes (e.g., 'weight').
+
+    Examples:
+        >>> # Export any NetworkX graph
+        >>> import networkx as nx
+        >>> from semnet import to_pandas
+        >>>
+        >>> # Create or load any graph
+        >>> G = nx.karate_club_graph()
+        >>> nodes, edges = to_pandas(G)
+
+        >>> # Use with SemanticNetwork
+        >>> network = SemanticNetwork(thresh=0.8)
+        >>> graph = network.fit_transform(embeddings, labels=docs)
+        >>> nodes, edges = to_pandas(graph)
+
+        >>> # Export a subgraph
+        >>> subgraph = graph.subgraph([0, 1, 2])
+        >>> sub_nodes, sub_edges = to_pandas(subgraph)
+    """
+    # Convert nodes to DataFrame
+    node_list = []
+    for node, data in graph.nodes(data=True):
+        node_data = {"node_id": node}
+        node_data.update(data)
+        node_list.append(node_data)
+
+    nodes = pd.DataFrame(node_list)
+
+    # Convert edges to DataFrame
+    if graph.number_of_edges() > 0:
+        edges = nx.to_pandas_edgelist(graph)
+    else:
+        # Create empty DataFrame with expected columns if no edges
+        edges = pd.DataFrame(columns=["source", "target"])
+
+    return nodes, edges
+
+
 class SemanticNetwork:
     """
     A semantic network builder for creating graphs from document embeddings.
@@ -232,62 +286,6 @@ class SemanticNetwork:
         return self.fit(embeddings=embeddings).transform(
             thresh=thresh, top_k=top_k, labels=labels, node_data=node_data
         )
-
-    def to_pandas(
-        self, graph: Optional[nx.Graph] = None
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """
-        Export a NetworkX graph to pandas DataFrames.
-
-        By default, exports the most recently transformed graph. Optionally accepts
-        an arbitrary NetworkX graph (useful for subgraphs or modified graphs).
-
-        Args:
-            graph: Optional NetworkX graph to export. If None, will raise an error
-                  since no graph is stored by default after transform.
-
-        Returns:
-            Tuple[pd.DataFrame, pd.DataFrame]: A tuple containing:
-                - nodes (pd.DataFrame): Node attributes with index as node ID.
-                  Columns include all node attributes from the graph.
-                - edges (pd.DataFrame): Edge list with columns 'source', 'target',
-                  and any edge attributes (e.g., 'weight').
-
-        Raises:
-            ValueError: If no graph is provided and the model hasn't been fitted yet
-
-        Examples:
-            >>> # Build and export a graph
-            >>> network = SemanticNetwork(thresh=0.8)
-            >>> graph = network.fit_transform(embeddings, labels=docs)
-            >>> nodes, edges = network.to_pandas(graph)
-
-            >>> # Export a subgraph
-            >>> subgraph = graph.subgraph([0, 1, 2])
-            >>> sub_nodes, sub_edges = network.to_pandas(subgraph)
-        """
-        if graph is None:
-            raise ValueError(
-                "No graph provided. Call transform() to get a graph, then pass it to to_pandas()."
-            )
-
-        # Convert nodes to DataFrame
-        node_list = []
-        for node, data in graph.nodes(data=True):
-            node_data = {"node_id": node}
-            node_data.update(data)
-            node_list.append(node_data)
-
-        nodes = pd.DataFrame(node_list)
-
-        # Convert edges to DataFrame
-        if graph.number_of_edges() > 0:
-            edges = nx.to_pandas_edgelist(graph)
-        else:
-            # Create empty DataFrame with expected columns if no edges
-            edges = pd.DataFrame(columns=["source", "target"])
-
-        return nodes, edges
 
     def _build_vector_index(self) -> AnnoyIndex:
         """
