@@ -272,9 +272,13 @@ class SemanticNetwork:
             )
 
         # Convert nodes to DataFrame
-        nodes = pd.DataFrame.from_dict(
-            dict(graph.nodes(data=True)), orient="index"
-        )
+        node_list = []
+        for node, data in graph.nodes(data=True):
+            node_data = {"node_id": node}
+            node_data.update(data)
+            node_list.append(node_data)
+
+        nodes = pd.DataFrame(node_list)
 
         # Convert edges to DataFrame
         if graph.number_of_edges() > 0:
@@ -451,7 +455,6 @@ class SemanticNetwork:
             # Set basic attributes
             attrs = {
                 "label": self._labels[i],
-                "id": i,
             }
 
             # Add custom node data if provided for this specific node

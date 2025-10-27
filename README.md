@@ -8,7 +8,7 @@ _Embeddings of Guardian headlines represented as a network by Semnet and visuali
 ## Introduction
 Semnet constructs graph structures from embeddings, enabling graph-based analysis and operations over collections of embedded documents.
 
-Semnet uses [Annoy](https://github.com/spotify/annoy) to perform efficient pair-wise distance calculations across embeddings, enabling graph construction across large datasets. 
+Semnet uses [Annoy](https://github.com/spotify/annoy) to perform efficient pair-wise distance calculations, allowing for million-embedding network construction in under ten minutes on consumer hardware.
 
 Graphs are returned as [NetworkX](https://networkx.org) objects, opening up a wide range of algorithms for downstream use.
 
@@ -58,16 +58,6 @@ nodes, edges = sem.to_pandas(G)
 
 ## Overview
 
-### What is a Semantic Network?
-A semantic network represents relationships between concepts. A simple case, shown below, allows us to examine what properties are shared by particular entities (nodes) and _how_ they are shared.
-
-![Semantic network](img/semantic_network_example.svg)
-
-_Public Domain, from [Wikipedia](https://commons.wikimedia.org/w/index.php?curid=1353062)_
-
-### What is a Semantic Similarity Network (SSN)
-A [semantic _similarity_ network](https://en.wikipedia.org/wiki/Semantic_similarity_network), as may be produced by Semnet, is a special case of a semantic network, which represents linkages by how _similar_ two entities are.
-
 ### What problem does Semnet solve?
 Graph construction entails finding pairwise relationships (edges) between entities (nodes) in a dataset. 
 
@@ -78,7 +68,7 @@ $$pairs = \frac{n(n-1)}{2}$$
 ### Naive approach
 If we were to naively attempt to construct a graph from a modestly-sized set of documents using something like `itertools.combinations()` we rapidly run into problems.
 
-Trying this out naively on my four-year old gaming laptop:
+Trying this out naively on my four-year-old gaming laptop required leaving it running overnight:
 
 ```python
 n = 10000
