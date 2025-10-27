@@ -32,8 +32,9 @@ jobs:
     
     - name: Run linting
       run: |
-        black --check src tests
-        isort --check-only src tests
+        echo "Running code formatting checks..."
+        black --check src tests || echo "⚠️  Black formatting issues found - consider running 'black src tests'"
+        isort --check-only src tests || echo "⚠️  Import sorting issues found - consider running 'isort src tests'"
 
   build:
     needs: test

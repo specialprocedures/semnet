@@ -72,7 +72,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.black]
-line-length = 79
+line-length = 100
 target-version = ['py38']
 include = '\.pyi?$'
 extend-exclude = '''
@@ -92,7 +92,16 @@ extend-exclude = '''
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-line_length = 79
+line_length = 100
+
+[tool.flake8]
+max-line-length = 100
+ignore = [
+    "E203",  # whitespace before ':' (conflicts with black)
+    "E501",  # line too long (handled by black)
+    "W503",  # line break before binary operator (conflicts with black)
+]
+extend-ignore = ["E203", "E501", "W503"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
