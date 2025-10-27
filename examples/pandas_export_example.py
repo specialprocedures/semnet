@@ -9,7 +9,7 @@ analysis and visualization.
 import numpy as np
 import pandas as pd
 import networkx as nx
-from semnet import SemanticNetwork
+from semnet import SemanticNetwork, to_pandas
 
 # Create sample documents
 docs = [
@@ -82,7 +82,10 @@ print(f"- Density: {nx.density(graph):.3f}")
 
 # Export to pandas DataFrames
 print("\n=== Exporting to Pandas DataFrames ===")
-nodes_df, edges_df = network.to_pandas(graph)
+# Using the standalone to_pandas function (recommended approach)
+nodes_df, edges_df = to_pandas(graph)
+# Alternative: using the class method (backward compatible)
+# nodes_df, edges_df = network.to_pandas(graph)
 
 print(f"\nNodes DataFrame shape: {nodes_df.shape}")
 print(f"Columns: {list(nodes_df.columns)}")
@@ -162,7 +165,9 @@ summary = (
     .agg(
         {
             "name": "count",
-            "sentiment": lambda x: x.mode().iloc[0] if not x.empty else "unknown",
+            "sentiment": lambda x: (
+                x.mode().iloc[0] if not x.empty else "unknown"
+            ),
         }
     )
     .rename(columns={"name": "doc_count", "sentiment": "common_sentiment"})
@@ -191,8 +196,12 @@ if len(edges_df) > 0:
         edges_enriched["topic"] == edges_enriched["topic_target"]
     )
 
-    print(f"  - Within-topic connections: {edges_enriched['same_topic'].sum()}")
-    print(f"  - Cross-topic connections: {(~edges_enriched['same_topic']).sum()}")
+    print(
+        f"  - Within-topic connections: {edges_enriched['same_topic'].sum()}"
+    )
+    print(
+        f"  - Cross-topic connections: {(~edges_enriched['same_topic']).sum()}"
+    )
 
 # Demonstrate subgraph analysis
 if graph.number_of_edges() > 0:
@@ -206,8 +215,8 @@ if graph.number_of_edges() > 0:
     print(f"  - Nodes: {subgraph.number_of_nodes()}")
     print(f"  - Edges: {subgraph.number_of_edges()}")
 
-    # Export subgraph
-    sub_nodes_df, sub_edges_df = network.to_pandas(subgraph)
+    # Export subgraph using standalone function
+    sub_nodes_df, sub_edges_df = to_pandas(subgraph)
     print(f"  - Subgraph nodes DataFrame shape: {sub_nodes_df.shape}")
     print(f"  - Subgraph edges DataFrame shape: {sub_edges_df.shape}")
 

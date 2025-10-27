@@ -3,7 +3,7 @@
 ## Basic Usage
 
 ```python
-from semnet import SemanticNetwork
+from semnet import SemanticNetwork, to_pandas
 from sentence_transformers import SentenceTransformer
 import networkx as nx
 
@@ -26,6 +26,9 @@ sem = SemanticNetwork(thresh=0.3, verbose=True)  # Larger values give sparser ne
 # Build the semantic graph from your embeddings
 G = sem.fit_transform(embeddings, labels=docs)
 
+# Export to pandas
+nodes_df, edges_df = to_pandas(G)
+
 # Analyze the graph
 print(f"Nodes: {G.number_of_nodes()}")
 print(f"Edges: {G.number_of_edges()}")
@@ -44,6 +47,5 @@ for node, cent_value in centrality.items():
     print(f"Document: {G.nodes[node]['label']}, Degree Centrality: {cent_value:.4f}")
     G.nodes[node]["degree_centrality"] = cent_value
 
-# Export to pandas
-nodes_df, edges_df = sem.to_pandas(G)
+
 ```

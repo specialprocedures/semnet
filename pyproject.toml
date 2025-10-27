@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semnet"
-version = "0.1.3"
+version = "0.1.6"
 authors = [
     {name = "Ian Goodrich", email = "ian@igdr.ch"},
 ]
@@ -45,7 +45,7 @@ dev = [
     "isort>=5.0",
     "flake8>=3.8",
     "mypy>=0.800",
-    "sentence-transformers>=2.0.0",  # For examples
+    "sentence-transformers>=2.0.0",  # For tests
 ]
 docs = [
     "sphinx>=4.0",
@@ -56,6 +56,7 @@ examples = [
     "sentence-transformers>=2.0.0",
     "matplotlib>=3.3.0",
     "jupyter>=1.0.0",
+    "cosmograph"
 ]
 
 [project.urls]

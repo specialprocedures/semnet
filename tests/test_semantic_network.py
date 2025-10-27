@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from semnet import SemanticNetwork
+from semnet import SemanticNetwork, to_pandas
 
 
 class TestSemanticNetwork:
@@ -178,29 +178,25 @@ class TestSemanticNetwork:
         assert network.is_fitted_ is True
         # Check that default labels are string indices
         assert network._labels == ["0", "1", "2"]
-        # Check that default IDs are integer indices (0, 1, 2)
-        assert graph.nodes[0]["id"] == 0
-        assert graph.nodes[1]["id"] == 1
-        assert graph.nodes[2]["id"] == 2
-        # Check graph has correct node labels
+        # Check graph has correct node labels (no id attribute expected)
         for i in range(3):
             assert graph.nodes[i]["label"] == str(i)
 
     def test_to_pandas_basic(self):
-        """Test basic to_pandas functionality."""
+        """Test basic to_pandas functionality with SemanticNetwork graphs."""
         docs = ["doc1", "doc2", "doc3"]
         embeddings = np.random.rand(3, 128)
 
         network = SemanticNetwork(verbose=False)
         graph = network.fit_transform(embeddings, labels=docs)
 
-        nodes, edges = network.to_pandas(graph)
+        nodes, edges = to_pandas(graph)
 
         # Check nodes DataFrame
         assert isinstance(nodes, pd.DataFrame)
         assert len(nodes) == 3
         assert "label" in nodes.columns
-        assert "id" in nodes.columns
+        assert "node_id" in nodes.columns
 
         # Check that node labels match our docs
         node_labels = nodes["label"].tolist()
@@ -210,7 +206,7 @@ class TestSemanticNetwork:
         assert isinstance(edges, pd.DataFrame)
 
     def test_to_pandas_with_node_data(self):
-        """Test to_pandas with custom node data."""
+        """Test to_pandas with custom node data from SemanticNetwork."""
         docs = ["doc1", "doc2", "doc3"]
         embeddings = np.random.rand(3, 128)
         node_data = {
@@ -224,7 +220,7 @@ class TestSemanticNetwork:
             embeddings, labels=docs, node_data=node_data
         )
 
-        nodes, edges = network.to_pandas(graph)
+        nodes, edges = to_pandas(graph)
 
         # Check that custom node data is included
         assert "category" in nodes.columns
@@ -236,7 +232,7 @@ class TestSemanticNetwork:
         assert nodes.loc[2, "category"] == "tech"
 
     def test_to_pandas_with_similarities(self):
-        """Test to_pandas with forced similarities."""
+        """Test to_pandas with graphs containing similarity edges."""
         docs = ["doc1", "doc2", "doc3"]
         # Create very similar embeddings to ensure connections
         base_embedding = np.random.rand(128)
@@ -256,7 +252,7 @@ class TestSemanticNetwork:
         network = SemanticNetwork(verbose=False, thresh=0.8)
         graph = network.fit_transform(embeddings, labels=docs)
 
-        nodes, edges = network.to_pandas(graph)
+        nodes, edges = to_pandas(graph)
 
         # Should have edges due to high similarity
         if len(edges) > 0:
@@ -266,13 +262,6 @@ class TestSemanticNetwork:
 
             # Check that weights are above threshold
             assert (edges["weight"] >= 0.8).all()
-
-    def test_to_pandas_no_graph_provided(self):
-        """Test to_pandas fails when no graph provided."""
-        network = SemanticNetwork()
-
-        with pytest.raises(ValueError, match="No graph provided"):
-            network.to_pandas()
 
     def test_transform_with_custom_thresholds(
         self, sample_docs, sample_embeddings
@@ -321,3 +310,89 @@ def test_real_model_integration():
     assert isinstance(graph, nx.Graph)
     assert graph.number_of_nodes() == len(docs)
     assert network.is_fitted_ is True
+
+
+class TestToPandas:
+    """Test cases for the to_pandas function."""
+
+    def test_to_pandas_basic_graph(self):
+        """Test to_pandas with a basic NetworkX graph."""
+        # Create a simple graph
+        G = nx.Graph()
+        G.add_node(0, label="node0", category="A")
+        G.add_node(1, label="node1", category="B")
+        G.add_edge(0, 1, weight=0.8)
+
+        nodes, edges = to_pandas(G)
+
+        # Check nodes DataFrame
+        assert isinstance(nodes, pd.DataFrame)
+        assert len(nodes) == 2
+        assert "node_id" in nodes.columns
+        assert "label" in nodes.columns
+        assert "category" in nodes.columns
+
+        # Check edges DataFrame
+        assert isinstance(edges, pd.DataFrame)
+        assert len(edges) == 1
+        assert "source" in edges.columns
+        assert "target" in edges.columns
+        assert "weight" in edges.columns
+        assert edges.iloc[0]["weight"] == 0.8
+
+    def test_to_pandas_empty_graph(self):
+        """Test to_pandas with an empty graph."""
+        G = nx.Graph()
+        nodes, edges = to_pandas(G)
+
+        # Check empty DataFrames are returned correctly
+        assert isinstance(nodes, pd.DataFrame)
+        assert isinstance(edges, pd.DataFrame)
+        assert len(nodes) == 0
+        assert len(edges) == 0
+        assert "source" in edges.columns
+        assert "target" in edges.columns
+
+    def test_to_pandas_no_edges(self):
+        """Test to_pandas with a graph that has no edges."""
+        G = nx.Graph()
+        G.add_node(0, label="isolated")
+        G.add_node(1, label="also_isolated")
+
+        nodes, edges = to_pandas(G)
+
+        # Check nodes are present but no edges
+        assert len(nodes) == 2
+        assert len(edges) == 0
+        assert "source" in edges.columns
+        assert "target" in edges.columns
+
+    def test_to_pandas_karate_club(self):
+        """Test to_pandas with the Karate Club graph (built-in NetworkX example)."""
+        G = nx.karate_club_graph()
+        nodes, edges = to_pandas(G)
+
+        # Check basic structure
+        assert len(nodes) == 34  # Karate club has 34 nodes
+        assert len(edges) == 78  # Karate club has 78 edges
+        assert "node_id" in nodes.columns
+        assert "source" in edges.columns
+        assert "target" in edges.columns
+
+    def test_to_pandas_with_semnet_graph(self):
+        """Test that to_pandas works correctly with SemanticNetwork graphs."""
+        docs = ["doc1", "doc2", "doc3"]
+        embeddings = np.random.rand(3, 128)
+
+        network = SemanticNetwork(verbose=False)
+        graph = network.fit_transform(embeddings, labels=docs)
+
+        # Test that to_pandas works with SemanticNetwork graphs
+        nodes, edges = to_pandas(graph)
+
+        # Check basic structure
+        assert isinstance(nodes, pd.DataFrame)
+        assert isinstance(edges, pd.DataFrame)
+        assert len(nodes) == 3
+        assert "node_id" in nodes.columns
+        assert "label" in nodes.columns

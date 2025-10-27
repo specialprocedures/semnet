@@ -8,8 +8,9 @@ __version__ = "0.1.0"
 __author__ = "Ian Goodrich"
 __email__ = "ian@igdr.ch"
 
-from .semnet import SemanticNetwork
+from .semnet import SemanticNetwork, to_pandas
 
 __all__ = [
     "SemanticNetwork",
+    "to_pandas",
 ]

@@ -7,7 +7,7 @@ using approximate nearest neighbor search and graph construction. Users must pro
 their own embeddings (e.g., from sentence-transformers, OpenAI, etc.)
 """
 
-from semnet import SemanticNetwork
+from semnet import SemanticNetwork, to_pandas
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import networkx as nx
@@ -72,7 +72,7 @@ def main():
     print("SAMPLE NODES (with attributes):")
     print("-" * 40)
     for i, (node, data) in enumerate(list(graph.nodes(data=True))[:5]):
-        print(f"Node {node}: {data['name'][:50]}...")
+        print(f"Node {node}: {data['label'][:50]}...")
         print(f"  Attributes: {dict(data)}")
         print()
 
@@ -82,14 +82,14 @@ def main():
     if graph.number_of_edges() > 0:
         # Sort edges by similarity (highest first)
         edges_with_sim = [
-            (u, v, data["similarity"]) for u, v, data in graph.edges(data=True)
+            (u, v, data[\"weight\"]) for u, v, data in graph.edges(data=True)
         ]
         edges_with_sim.sort(key=lambda x: x[2], reverse=True)
 
         print(f"Found {len(edges_with_sim)} similarity connections:")
         for u, v, similarity in edges_with_sim[:10]:  # Show top 10
-            doc1 = graph.nodes[u]["name"]
-            doc2 = graph.nodes[v]["name"]
+            doc1 = graph.nodes[u]["label"]
+            doc2 = graph.nodes[v]["label"]
             print(f"  {similarity:.3f}: '{doc1[:40]}...' <-> '{doc2[:40]}...'")
 
         if len(edges_with_sim) > 10:
@@ -108,7 +108,7 @@ def main():
         if len(component) > 1:
             print(f"Component {i} ({len(component)} documents):")
             for node in sorted(component):
-                doc = graph.nodes[node]["name"]
+                doc = graph.nodes[node]["label"]
                 print(f"  - {doc}")
             print()
         else:
@@ -121,10 +121,10 @@ def main():
     # Export to pandas for further analysis
     print("PANDAS EXPORT EXAMPLE:")
     print("-" * 40)
-    nodes_df, edges_df = network.to_pandas(graph)
+    nodes_df, edges_df = to_pandas(graph)
 
     print("Nodes DataFrame:")
-    print(nodes_df[["name", "id"]].head())
+    print(nodes_df[["label", "node_id"]].head())
     print()
 
     if len(edges_df) > 0:
