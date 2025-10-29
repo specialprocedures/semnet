@@ -97,7 +97,7 @@ class SemanticNetwork:
         self,
         metric: MetricType = "angular",
         n_trees: int = 10,
-        thresh: float = 0.7,
+        thresh: float = 0.3,
         top_k: int = 100,
         verbose: bool = False,
     ) -> None:
@@ -157,12 +157,8 @@ class SemanticNetwork:
         self.embeddings_ = embeddings
 
         if self.verbose:
-            logger.info(
-                f"Using provided embeddings with shape: {self.embeddings_.shape}"
-            )
-            logger.info(
-                f"Fitting SemanticNetwork on {len(embeddings)} documents"
-            )
+            logger.info(f"Using provided embeddings with shape: {self.embeddings_.shape}")
+            logger.info(f"Fitting SemanticNetwork on {len(embeddings)} documents")
 
         # Build the vector index
         self._build_vector_index()
@@ -198,9 +194,7 @@ class SemanticNetwork:
             ValueError: If the model hasn't been fitted yet
         """
         if not self.is_fitted_:
-            raise ValueError(
-                "This SemanticNetwork instance is not fitted yet. Call 'fit' first."
-            )
+            raise ValueError("This SemanticNetwork instance is not fitted yet. Call 'fit' first.")
 
         n_docs = self.embeddings_.shape[0]
 
@@ -215,20 +209,14 @@ class SemanticNetwork:
                 raise ValueError("Node data must be a dictionary")
 
             # Check if all keys are integers (node indices)
-            non_integer_keys = [
-                k
-                for k in node_data.keys()
-                if not isinstance(k, (int, np.integer))
-            ]
+            non_integer_keys = [k for k in node_data.keys() if not isinstance(k, (int, np.integer))]
             if non_integer_keys:
                 raise ValueError(
                     f"Node data keys must be integer node indices, got: {non_integer_keys}"
                 )
 
             # Validate that node_data keys are valid node indices
-            invalid_indices = [
-                idx for idx in node_data.keys() if idx >= n_docs or idx < 0
-            ]
+            invalid_indices = [idx for idx in node_data.keys() if idx >= n_docs or idx < 0]
             if invalid_indices:
                 raise ValueError(
                     f"Node data contains invalid indices {invalid_indices}. Indices must be 0 <= idx < {n_docs}"
@@ -245,9 +233,7 @@ class SemanticNetwork:
             node_data = processed_node_data
 
         # Store training data
-        self._labels = (
-            labels if labels is not None else [str(i) for i in range(n_docs)]
-        )
+        self._labels = labels if labels is not None else [str(i) for i in range(n_docs)]
         self._node_data = node_data
 
         # Use provided thresholds or fall back to instance defaults
@@ -255,9 +241,7 @@ class SemanticNetwork:
         effective_top_k = top_k if top_k is not None else self.top_k
 
         # Get pairwise similarities
-        neighbor_data = self._get_pairwise_similarities(
-            effective_thresh, effective_top_k
-        )
+        neighbor_data = self._get_pairwise_similarities(effective_thresh, effective_top_k)
 
         # Build and return the graph
         return self._build_graph(neighbor_data)
@@ -301,9 +285,7 @@ class SemanticNetwork:
             The index is stored in self.index_ and also returned.
         """
         if self.embeddings_ is None:
-            raise ValueError(
-                "Embeddings not found. Please provide embeddings in fit() method."
-            )
+            raise ValueError("Embeddings not found. Please provide embeddings in fit() method.")
 
         embedding_dim = self.embeddings_.shape[1]
         self.index_ = AnnoyIndex(embedding_dim, self.metric)  # type: ignore
@@ -332,9 +314,7 @@ class SemanticNetwork:
 
         return self.index_
 
-    def _get_pairwise_similarities(
-        self, thresh: float, top_k: int
-    ) -> pd.DataFrame:
+    def _get_pairwise_similarities(self, thresh: float, top_k: int) -> pd.DataFrame:
         """
         Find pairwise similarities between documents above a threshold.
 
@@ -367,9 +347,7 @@ class SemanticNetwork:
         results = []
 
         if self.verbose:
-            iterator = tqdm(
-                range(len(self.embeddings_)), desc="Finding similarities"
-            )
+            iterator = tqdm(range(len(self.embeddings_)), desc="Finding similarities")
         else:
             iterator = range(len(self.embeddings_))
 
@@ -410,9 +388,7 @@ class SemanticNetwork:
         neighbor_data = pd.DataFrame(results)
 
         if self.verbose:
-            logger.info(
-                f"Found {len(neighbor_data)} similarity pairs above threshold {thresh}"
-            )
+            logger.info(f"Found {len(neighbor_data)} similarity pairs above threshold {thresh}")
 
         return neighbor_data
 
@@ -441,9 +417,7 @@ class SemanticNetwork:
             raise ValueError("No training documents found. Call fit() first.")
 
         if self.verbose:
-            logger.info(
-                f"Building graph from {len(neighbor_data)} similarity edges"
-            )
+            logger.info(f"Building graph from {len(neighbor_data)} similarity edges")
 
         # Instantiate undirected graph
         G = nx.Graph()
