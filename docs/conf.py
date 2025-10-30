@@ -47,7 +47,7 @@ html_favicon = "_static/favicon.svg"
 html_theme_options = {
     "analytics_id": "",
     "logo_only": False,
-    "display_version": True,
+    # "display_version": True,  # Removed - deprecated in newer sphinx_rtd_theme versions
     "prev_next_buttons_location": "bottom",
     "style_external_links": False,
     "vcs_pageview_mode": "",

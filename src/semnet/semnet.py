@@ -98,18 +98,39 @@ class SemanticNetwork:
         metric: MetricType = "angular",
         n_trees: int = 10,
         thresh: float = 0.3,
-        top_k: int = 100,
+        top_k: int = 20,
         verbose: bool = False,
     ) -> None:
         """
         Initialize the SemanticNetwork.
 
         Args:
-            metric: Distance metric for Annoy index ('angular', 'euclidean', etc.)
-            n_trees: Number of trees for Annoy index (more = better accuracy, slower build)
-            thresh: Similarity threshold for connecting documents (0.0 to 1.0)
-            top_k: Maximum number of neighbors to check per document
-            verbose: Whether to show progress bars and detailed logging
+            metric: Distance metric for the Annoy index. Options:
+                   - 'angular': Cosine distance (1 - cosine similarity). Best for normalized embeddings
+                     like those from sentence transformers. Default and recommended.
+                   - 'euclidean': L2 distance. Good for embeddings where magnitude matters.
+                   - 'manhattan': L1 distance. Less common, useful for sparse data.
+                   - 'hamming': Hamming distance for binary vectors.
+                   - 'dot': Negative dot product. Use with caution.
+            n_trees: Number of trees in the Annoy index forest. More trees = higher accuracy but
+                    slower build time and larger memory usage. Typical range: 10-100.
+                    - 10 (default): Good balance for most applications
+                    - 50+: Better accuracy for large datasets (100k+ documents)
+                    - 100+: Highest accuracy for production systems
+            thresh: Similarity threshold for edge creation (0.0 to 1.0). Documents with
+                   similarity >= thresh will be connected by an edge. Higher values create
+                   sparser, more selective networks:
+                   - 0.1-0.2: Dense networks, captures weak similarities
+                   - 0.2-0.4: Moderate selectivity, good for most applications
+                   - 0.5+: Very selective, only strong similarities
+            top_k: Maximum number of nearest neighbors to examine per document when building
+                  the network. Higher values find more potential connections but increase
+                  computation time. Should be >> expected degree:
+                  - 10-20: Good starting point for most applications (default: 20)
+                  - 20-50: More comprehensive search for medium datasets
+                  - 50-100: Thorough search for large or sparse datasets
+                  - 100+: Use only when seeking maximum connectivity
+            verbose: Whether to show progress bars and detailed logging during fit/transform
         """
         self.metric = metric
         self.n_trees = n_trees
@@ -195,6 +216,9 @@ class SemanticNetwork:
         """
         if not self.is_fitted_:
             raise ValueError("This SemanticNetwork instance is not fitted yet. Call 'fit' first.")
+
+        if self.embeddings_ is None:
+            raise ValueError("Embeddings not available. This should not happen after fitting.")
 
         n_docs = self.embeddings_.shape[0]
 
