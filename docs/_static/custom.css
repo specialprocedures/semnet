@@ -1,0 +1,493 @@
+/* Semnet Documentation Custom Styling - Inspired by igdr.ch */
+
+/* ==========================================================================
+   COLOR SCHEME & VARIABLES
+   ========================================================================== */
+
+:root {
+    --primary-bg: #111827;
+    --secondary-bg: #1f2937;
+    --tertiary-bg: #374151;
+    --text-primary: #f3f4f6;
+    --text-secondary: #e5e7eb;
+    --text-muted: #9ca3af;
+    --accent-primary: #8b5cf6;
+    --accent-secondary: #7c3aed;
+    --code-bg: #111827;
+    --code-border: #374151;
+    --shadow-light: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-medium: 0 8px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================================================================
+   MAIN LAYOUT & BACKGROUND
+   ========================================================================== */
+
+/* Override RTD theme background */
+.wy-nav-content-wrap {
+    background: var(--primary-bg) !important;
+}
+
+.wy-nav-content {
+    background: var(--primary-bg) !important;
+}
+
+/* Sidebar styling */
+.wy-nav-side {
+    background: var(--secondary-bg) !important;
+}
+
+.wy-menu-vertical a {
+    color: var(--text-secondary) !important;
+}
+
+.wy-menu-vertical a:hover {
+    background-color: var(--tertiary-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+.wy-menu-vertical .current a {
+    background-color: var(--accent-primary) !important;
+    color: var(--text-primary) !important;
+    border-right: none !important;
+}
+
+/* ==========================================================================
+   TYPOGRAPHY
+   ========================================================================== */
+
+/* Main content text */
+.rst-content {
+    color: var(--text-primary) !important;
+}
+
+/* Headings */
+.rst-content h1,
+.rst-content h2,
+.rst-content h3,
+.rst-content h4,
+.rst-content h5,
+.rst-content h6 {
+    color: var(--text-primary) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.025em !important;
+}
+
+.rst-content h1 {
+    font-size: 2.5rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 1.5rem !important;
+    border-bottom: 2px solid var(--accent-primary) !important;
+    padding-bottom: 0.5rem !important;
+}
+
+.rst-content h2 {
+    font-size: 2rem !important;
+    margin-top: 2rem !important;
+    margin-bottom: 1rem !important;
+    color: var(--accent-primary) !important;
+}
+
+.rst-content h3 {
+    font-size: 1.5rem !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+    color: var(--accent-secondary) !important;
+}
+
+/* Paragraphs */
+.rst-content p {
+    color: var(--text-secondary) !important;
+    line-height: 1.75 !important;
+    margin-bottom: 1.25rem !important;
+}
+
+/* Links */
+.rst-content a {
+    color: var(--accent-primary) !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+}
+
+.rst-content a:hover {
+    color: var(--accent-secondary) !important;
+    text-decoration: underline !important;
+}
+
+/* ==========================================================================
+   CODE BLOCKS & SYNTAX HIGHLIGHTING
+   ========================================================================== */
+
+/* Code blocks */
+.rst-content pre,
+.rst-content code {
+    background-color: var(--code-bg) !important;
+    border: 1px solid var(--code-border) !important;
+    border-radius: 0.5rem !important;
+    box-shadow: var(--shadow-light) !important;
+}
+
+.rst-content pre {
+    padding: 1rem !important;
+    margin: 1.5rem 0 !important;
+    overflow-x: auto !important;
+}
+
+.rst-content code {
+    padding: 0.125rem 0.375rem !important;
+    font-size: 0.875em !important;
+    color: var(--text-primary) !important;
+}
+
+.rst-content pre code {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-primary) !important;
+}
+
+/* Inline code in text */
+.rst-content tt,
+.rst-content .literal {
+    background-color: var(--tertiary-bg) !important;
+    color: var(--text-primary) !important;
+    padding: 0.125rem 0.375rem !important;
+    border-radius: 0.25rem !important;
+    font-size: 0.875em !important;
+    border: none !important;
+}
+
+/* Syntax highlighting */
+.highlight .k,
+/* Keywords */
+.highlight .kn,
+/* Keyword.Namespace */
+.highlight .kp,
+/* Keyword.Pseudo */
+.highlight .kr,
+/* Keyword.Reserved */
+.highlight .kt {
+    /* Keyword.Type */
+    color: var(--accent-primary) !important;
+    font-weight: 600 !important;
+}
+
+.highlight .s,
+/* String */
+.highlight .s1,
+/* String.Single */
+.highlight .s2,
+/* String.Double */
+.highlight .se,
+/* String.Escape */
+.highlight .sh {
+    /* String.Heredoc */
+    color: #10b981 !important;
+    /* emerald-500 */
+}
+
+.highlight .m,
+/* Number */
+.highlight .mi,
+/* Number.Integer */
+.highlight .mf,
+/* Number.Float */
+.highlight .mh,
+/* Number.Hex */
+.highlight .mo {
+    /* Number.Octal */
+    color: #f59e0b !important;
+    /* amber-500 */
+}
+
+.highlight .c,
+/* Comment */
+.highlight .c1,
+/* Comment.Single */
+.highlight .cm,
+/* Comment.Multiline */
+.highlight .cp {
+    /* Comment.Preproc */
+    color: var(--text-muted) !important;
+    font-style: italic !important;
+}
+
+.highlight .n,
+/* Name */
+.highlight .na,
+/* Name.Attribute */
+.highlight .nb,
+/* Name.Builtin */
+.highlight .nc,
+/* Name.Class */
+.highlight .nd,
+/* Name.Decorator */
+.highlight .ne,
+/* Name.Exception */
+.highlight .nf,
+/* Name.Function */
+.highlight .nl,
+/* Name.Label */
+.highlight .nn,
+/* Name.Namespace */
+.highlight .nt,
+/* Name.Tag */
+.highlight .nv,
+/* Name.Variable */
+.highlight .nx {
+    /* Name.Other */
+    color: var(--text-primary) !important;
+}
+
+.highlight .nf,
+/* Functions */
+.highlight .nc {
+    /* Classes */
+    color: #06b6d4 !important;
+    /* cyan-500 */
+}
+
+.highlight .o,
+/* Operator */
+.highlight .ow {
+    /* Operator.Word */
+    color: var(--text-secondary) !important;
+}
+
+/* ==========================================================================
+   NAVIGATION & SEARCH
+   ========================================================================== */
+
+/* Top navigation */
+.wy-nav-top {
+    background: var(--secondary-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+.wy-nav-top a {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+}
+
+/* Search box */
+.wy-side-nav-search {
+    background: var(--secondary-bg) !important;
+}
+
+.wy-side-nav-search input[type="text"] {
+    background-color: var(--tertiary-bg) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--code-border) !important;
+    border-radius: 0.375rem !important;
+}
+
+.wy-side-nav-search input[type="text"]:focus {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2) !important;
+}
+
+/* ==========================================================================
+   CONTENT ENHANCEMENTS
+   ========================================================================== */
+
+/* Tables */
+.rst-content table.docutils {
+    border: 1px solid var(--code-border) !important;
+    border-radius: 0.5rem !important;
+    overflow: hidden !important;
+    box-shadow: var(--shadow-light) !important;
+}
+
+.rst-content table.docutils th {
+    background-color: var(--secondary-bg) !important;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid var(--accent-primary) !important;
+}
+
+.rst-content table.docutils td {
+    background-color: var(--tertiary-bg) !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--code-border) !important;
+}
+
+/* Admonitions (note, warning, etc.) */
+.rst-content .admonition {
+    background-color: var(--secondary-bg) !important;
+    border: 1px solid var(--code-border) !important;
+    border-radius: 0.5rem !important;
+    box-shadow: var(--shadow-light) !important;
+    margin: 1.5rem 0 !important;
+}
+
+.rst-content .admonition .admonition-title {
+    background-color: var(--accent-primary) !important;
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    margin: -12px -12px 12px -12px !important;
+    padding: 12px !important;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+.rst-content .admonition p {
+    color: var(--text-secondary) !important;
+}
+
+/* Note admonition */
+.rst-content .note .admonition-title {
+    background-color: #3b82f6 !important;
+    /* blue-500 */
+}
+
+/* Warning admonition */
+.rst-content .warning .admonition-title {
+    background-color: #f59e0b !important;
+    /* amber-500 */
+}
+
+/* Images */
+.rst-content img {
+    border-radius: 0.5rem !important;
+    box-shadow: var(--shadow-light) !important;
+    margin: 1.5rem 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* Lists */
+.rst-content ul,
+.rst-content ol {
+    color: var(--text-secondary) !important;
+}
+
+.rst-content li {
+    margin-bottom: 0.5rem !important;
+}
+
+/* Blockquotes */
+.rst-content blockquote {
+    background-color: var(--secondary-bg) !important;
+    border-left: 4px solid var(--accent-primary) !important;
+    border-radius: 0 0.375rem 0.375rem 0 !important;
+    margin: 1.5rem 0 !important;
+    padding: 1rem 1.5rem !important;
+    box-shadow: var(--shadow-light) !important;
+}
+
+.rst-content blockquote p {
+    color: var(--text-secondary) !important;
+    font-style: italic !important;
+    margin-bottom: 0 !important;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .rst-content h1 {
+        font-size: 2rem !important;
+    }
+
+    .rst-content h2 {
+        font-size: 1.5rem !important;
+    }
+
+    .rst-content h3 {
+        font-size: 1.25rem !important;
+    }
+
+    .rst-content pre {
+        padding: 0.75rem !important;
+        font-size: 0.75rem !important;
+    }
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+
+footer {
+    background: var(--secondary-bg) !important;
+    color: var(--text-secondary) !important;
+    border-top: 1px solid var(--code-border) !important;
+}
+
+/* ==========================================================================
+   SCROLLBAR STYLING (Webkit browsers)
+   ========================================================================== */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--secondary-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--tertiary-bg);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}
+
+/* ==========================================================================
+   VERSION SELECTOR
+   ========================================================================== */
+
+.rst-versions {
+    background: var(--secondary-bg) !important;
+    color: var(--text-secondary) !important;
+    border-top: 1px solid var(--code-border) !important;
+}
+
+.rst-versions a {
+    color: var(--accent-primary) !important;
+}
+
+.rst-versions .rst-current-version {
+    background: var(--tertiary-bg) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ==========================================================================
+   LOGO STYLING
+   ========================================================================== */
+
+/* Style the logo in the sidebar */
+.wy-side-nav-search .wy-dropdown>a img.logo,
+.wy-side-nav-search>a img.logo {
+    width: 32px !important;
+    height: 32px !important;
+    filter: none !important;
+    background: none !important;
+}
+
+/* Style the logo container */
+.wy-side-nav-search .wy-dropdown>a,
+.wy-side-nav-search>a {
+    color: var(--text-primary) !important;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+}
+
+/* Project name styling */
+.wy-side-nav-search .wy-dropdown>a .projectname,
+.wy-side-nav-search>a .projectname {
+    color: var(--text-primary) !important;
+    font-weight: 700 !important;
+}
+
+/* Logo hover effect */
+.wy-side-nav-search .wy-dropdown>a:hover img.logo,
+.wy-side-nav-search>a:hover img.logo {
+    transform: scale(1.1) !important;
+    transition: transform 0.2s ease !important;
+}
