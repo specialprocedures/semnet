@@ -19,7 +19,9 @@ Semnet may be used for:
 - **Deduplication**: remove duplicate records (e.g., "Donald Trump", "Donald J. Trump) from datasets
 - **Exploratory data analysis and visualisation**, [Cosmograph](https://cosmograph.app/) works brilliantly for large corpora
 
-Exposing the full NetworkX and Annoy APIs, Semnet offers plenty of opportunity for experimentation depending on your use-case. Check out the examples for inspiration.
+Exposing the full NetworkX and Annoy APIs, Semnet offers plenty of opportunity for experimentation depending on your use-case. 
+
+Check out the [launch blog](https://igdr.ch/posts/semnet-intro/) for more about Semnet and the [examples](https://igdr.ch/posts/semnet-examples/) for inspiration.
 
 ## Installation
 
