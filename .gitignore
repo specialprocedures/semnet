@@ -9,3 +9,4 @@ build
 docs/_build
 scripts/build_and_publish.py
 notes.md
+dist
