@@ -74,7 +74,7 @@ Recommended for examples:
 
 I love network analysis, and have explored embedding-derived [semantic networks](https://en.wikipedia.org/wiki/Semantic_network) in the past as an alternative approach to representing, clustering and querying news data. 
 
-Semnet started life as a few functions I'd been using for deduplication for a forthcoming piece of research. I could a number of potential uses for my code, so I decided to package it up for others to use.
+Semnet started life as a few functions I'd been using for deduplication for a forthcoming piece of research. I could see a number of potential uses for my code, so I decided to package it up for others to use.
 
 ## Statement on the use of AI
 
