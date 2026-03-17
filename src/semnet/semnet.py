@@ -99,6 +99,7 @@ class SemanticNetwork:
         n_trees: int = 10,
         thresh: float = 0.3,
         top_k: int = 20,
+        search_k: Optional[int] = None,
         verbose: bool = False,
     ) -> None:
         """
@@ -130,12 +131,15 @@ class SemanticNetwork:
                   - 20-50: More comprehensive search for medium datasets
                   - 50-100: Thorough search for large or sparse datasets
                   - 100+: Use only when seeking maximum connectivity
+            search_k: Optional parameter for Annoy index search_k, controlling the number of nodes to inspect during search.
+                      If None, uses the default from Annoy.
             verbose: Whether to show progress bars and detailed logging during fit/transform
         """
         self.metric = metric
         self.n_trees = n_trees
         self.thresh = thresh
         self.top_k = top_k
+        self.search_k = search_k
         self.verbose = verbose
 
         # Fitted state
@@ -195,6 +199,7 @@ class SemanticNetwork:
         self,
         thresh: Optional[float] = None,
         top_k: Optional[int] = None,
+        search_k: Optional[int] = None,
         labels: Optional[List[str]] = None,
         node_data: Optional[Dict] = None,
     ) -> nx.Graph:
@@ -206,7 +211,14 @@ class SemanticNetwork:
                    If None, uses the threshold from initialization.
             top_k: Optional max neighbors override for this transform.
                   If None, uses the top_k from initialization.
-
+            search_k: Optional parameter for Annoy index search_k, controlling the number of nodes to inspect during search.
+                      If None, uses the default from Annoy.
+            labels: Optional list of text labels/documents for the embeddings.
+                    If not provided, will use string indices as labels.
+            node_data: Optional dictionary containing additional data to attach to nodes.
+                       Format: {node_index: {attribute_name: value, ...}, ...}
+                       OR {node_index: single_value, ...} (will be stored as {'value': single_value})
+                       Only nodes present in the dictionary will get additional attributes.
         Returns:
             NetworkX graph where nodes represent documents and edges represent
             similarities above the threshold.
@@ -265,7 +277,7 @@ class SemanticNetwork:
         effective_top_k = top_k if top_k is not None else self.top_k
 
         # Get pairwise similarities
-        neighbor_data = self._get_pairwise_similarities(effective_thresh, effective_top_k)
+        neighbor_data = self._get_pairwise_similarities(effective_thresh, effective_top_k, search_k)
 
         # Build and return the graph
         return self._build_graph(neighbor_data)
@@ -292,7 +304,7 @@ class SemanticNetwork:
             NetworkX graph representing the semantic network
         """
         return self.fit(embeddings=embeddings).transform(
-            thresh=thresh, top_k=top_k, labels=labels, node_data=node_data
+            thresh=thresh, top_k=top_k, search_k=None, labels=labels, node_data=node_data
         )
 
     def _build_vector_index(self) -> AnnoyIndex:
@@ -338,7 +350,9 @@ class SemanticNetwork:
 
         return self.index_
 
-    def _get_pairwise_similarities(self, thresh: float, top_k: int) -> pd.DataFrame:
+    def _get_pairwise_similarities(
+        self, thresh: float, top_k: int, search_k: Optional[int] = None
+    ) -> pd.DataFrame:
         """
         Find pairwise similarities between documents above a threshold.
 
@@ -348,6 +362,7 @@ class SemanticNetwork:
         Args:
             thresh: Similarity threshold for including edges
             top_k: Maximum number of neighbors to check per document
+            search_k: Optional parameter for Annoy index search_k, controlling the number of nodes to inspect during search
 
         Returns:
             DataFrame of similarities with columns: source_idx, target_idx, weight, source_name, target_name
@@ -383,10 +398,10 @@ class SemanticNetwork:
 
             # In case top_k exceeds number of items, set to -1 to get all items
             if effective_top_k > len(self.embeddings_):
-                effective_top_k = -1  # Annoy convention for all items
+                effective_top_k = len(self.embeddings_)
 
             neighbors = self.index_.get_nns_by_item(
-                idx_source, effective_top_k, include_distances=True
+                idx_source, effective_top_k, search_k=search_k, include_distances=True
             )
 
             # Reduce neighbours to exclude self-match
