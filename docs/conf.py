@@ -12,7 +12,7 @@ release = "0.1.0"
 copyright = "2025, Ian Goodrich"
 
 # The short X.Y version
-version = "0.1"
+version = "0.1.7"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
