@@ -212,7 +212,7 @@ class SemanticNetwork:
             top_k: Optional max neighbors override for this transform.
                   If None, uses the top_k from initialization.
             search_k: Optional parameter for Annoy index search_k, controlling the number of nodes to inspect during search.
-                      If None, uses the default from Annoy.
+                      If None, uses the search_k from initialization.
             labels: Optional list of text labels/documents for the embeddings.
                     If not provided, will use string indices as labels.
             node_data: Optional dictionary containing additional data to attach to nodes.
@@ -275,9 +275,12 @@ class SemanticNetwork:
         # Use provided thresholds or fall back to instance defaults
         effective_thresh = thresh if thresh is not None else self.thresh
         effective_top_k = top_k if top_k is not None else self.top_k
+        effective_search_k = search_k if search_k is not None else self.search_k
 
         # Get pairwise similarities
-        neighbor_data = self._get_pairwise_similarities(effective_thresh, effective_top_k, search_k)
+        neighbor_data = self._get_pairwise_similarities(
+            effective_thresh, effective_top_k, effective_search_k
+        )
 
         # Build and return the graph
         return self._build_graph(neighbor_data)
@@ -400,9 +403,15 @@ class SemanticNetwork:
             if effective_top_k > len(self.embeddings_):
                 effective_top_k = len(self.embeddings_)
 
-            neighbors = self.index_.get_nns_by_item(
-                idx_source, effective_top_k, search_k=search_k, include_distances=True
-            )
+            # Only pass search_k if explicitly set (annoy doesn't accept None)
+            if search_k is not None:
+                neighbors = self.index_.get_nns_by_item(
+                    idx_source, effective_top_k, search_k=search_k, include_distances=True
+                )
+            else:
+                neighbors = self.index_.get_nns_by_item(
+                    idx_source, effective_top_k, include_distances=True
+                )
 
             # Reduce neighbours to exclude self-match
             neighbors = (
