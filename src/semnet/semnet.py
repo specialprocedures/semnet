@@ -420,7 +420,20 @@ class SemanticNetwork:
             )
 
             for idx_target, dist in zip(*neighbors):
-                similarity = 1 - dist  # Convert angular distance to similarity
+                # Convert distance to similarity based on metric
+                if self.metric == "angular":
+                    # angular_dist = sqrt(2 * (1 - cos_sim))
+                    # Therefore: cos_sim = 1 - (dist^2 / 2)
+                    similarity = 1 - (dist**2) / 2
+                elif self.metric == "dot":
+                    # Annoy stores negative dot product
+                    similarity = -dist
+                elif self.metric == "hamming":
+                    # Hamming distance is already in [0, 1]
+                    similarity = 1 - dist
+                else:  # euclidean, manhattan
+                    # No direct cosine relationship; use common heuristic
+                    similarity = 1 / (1 + dist)
 
                 # Only include if above threshold
                 if similarity >= thresh:
